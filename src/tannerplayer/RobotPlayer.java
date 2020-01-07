@@ -1,5 +1,11 @@
 package tannerplayer;
 import battlecode.common.*;
+import tannerplayer.ObservationRecord;
+import static java.lang.Math.sqrt;
+import static java.lang.Math.ceil;
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+
 
 // Tanner's notes on how to make this work:
 // Tanner's Mac has 2 versions of Java in /Library/Java/JavaVirtualMachines/
@@ -32,6 +38,15 @@ public strictfp class RobotPlayer {
 
     static int turnCount;
 
+
+    static int ceilOfSensorRadius;
+
+    static final int NUM_MINERS_TO_BUILD = 1; // used by HQ
+    static int num_miners_built = 0; // used by HQ
+
+    static ObservationRecord [][] internalMap = null;
+
+
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
      * If this method returns, the robot dies!
@@ -45,14 +60,40 @@ public strictfp class RobotPlayer {
 
         turnCount = 0;
 
+        ceilOfSensorRadius = (int) ceil(sqrt(rc.getType().sensorRadiusSquared));
+
+        if(internalMap == null) {
+            internalMap = new ObservationRecord[rc.getMapWidth()][rc.getMapHeight()];
+        }
+
         System.out.println("I'm a " + rc.getType() + " and I just got created!");
         while (true) {
             turnCount += 1;
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
+                final int min_sensable_x = max(0, rc.getLocation().x - ceilOfSensorRadius);
+                final int max_sensable_x = min(rc.getMapWidth(), rc.getLocation().x + ceilOfSensorRadius);
+                final int min_sensable_y = max(0, rc.getLocation().y - ceilOfSensorRadius);
+                final int max_sensable_y = min(rc.getMapHeight(), rc.getLocation().y + ceilOfSensorRadius);
+                for(
+                    int x = min_sensable_x;
+                    x < max_sensable_x;
+                    x++
+                ) {
+                    for(
+                      int y = min_sensable_y;
+                      y < max_sensable_y;
+                      y++
+                    ) {
+                        if(rc.canSenseLocation(new MapLocation(x, y))) {
+                            internalMap[x][y] = new ObservationRecord(rc, new MapLocation(x, y));
+                        }
+                    }
+                }
+
                 // Here, we've separated the controls into a different method for each RobotType.
                 // You can add the missing ones or rewrite this into your own control structure.
-                System.out.println("I'm a " + rc.getType() + "! Location " + rc.getLocation());
+                // System.out.println("I'm a " + rc.getType() + "! Location " + rc.getLocation());
                 switch (rc.getType()) {
                     case HQ:                 runHQ();                break;
                     case MINER:              runMiner();             break;
@@ -76,15 +117,17 @@ public strictfp class RobotPlayer {
     }
 
     static void runHQ() throws GameActionException {
-        for (Direction dir : directions)
-            tryBuild(RobotType.MINER, dir);
+        if(num_miners_built < NUM_MINERS_TO_BUILD) {
+            for (Direction dir : directions)
+                if(tryBuild(RobotType.MINER, dir)) {
+                    num_miners_built++;
+                }
+        }
     }
 
     static void runMiner() throws GameActionException {
         tryBlockchain();
         tryMove(randomDirection());
-        if (tryMove(randomDirection()))
-            System.out.println("I moved!");
         // tryBuild(randomSpawnedByMiner(), randomDirection());
         for (Direction dir : directions)
             tryBuild(RobotType.FULFILLMENT_CENTER, dir);
