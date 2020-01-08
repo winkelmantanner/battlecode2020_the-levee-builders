@@ -97,6 +97,8 @@ public strictfp class RobotPlayer {
                     case NET_GUN:            runNetGun();            break;
                 }
 
+                System.out.println("Bytecodes " + String.valueOf(Clock.getBytecodeNum()));
+
                 // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
                 Clock.yield();
 
@@ -147,8 +149,6 @@ public strictfp class RobotPlayer {
     }
 
     static boolean tryGoTowardSoup() throws GameActionException {
-        int bcbefore = Clock.getBytecodeNum();
-        int turnbefore = rc.getRoundNum();
         boolean found_soup = false;
         if(rc.isReady()) {
             for(Direction dir : directions) {
@@ -160,8 +160,8 @@ public strictfp class RobotPlayer {
                     if(!isValid(ml)
                       || !rc.canSenseLocation(ml)
                       || rc.senseFlooding(ml)
-                      || abs(rc.senseElevation(ml) - last_elevation) > 3
-                      || null == rc.senseRobotAtLocation(ml)
+                      || abs(rc.senseElevation(ml) - last_elevation) > MAX_ELEVATION_STEP
+                      || null != rc.senseRobotAtLocation(ml)
                     ) {
                       stop = true;
                     } else {
@@ -179,12 +179,26 @@ public strictfp class RobotPlayer {
             }
         }
 
-        System.out.println("tryGoTowardSoup turns " + String.valueOf(rc.getRoundNum() - turnbefore) + " bytecodes " + String.valueOf(Clock.getBytecodeNum() - bcbefore));
         return found_soup;
     }
 
     static void updateWhereIveBeenRecords() throws GameActionException {
         // To be called for moving units at the beginning of each turn
+        for(Direction dir : directions) {
+            MapLocation l = rc.getLocation().add(dir);
+            if(locOfHQ == null) {
+                if(rc.canSenseLocation(l)) {
+                    RobotInfo rbt_at_l_or_null = rc.senseRobotAtLocation(l);
+                    if(rbt_at_l_or_null != null && rbt_at_l_or_null.type == RobotType.HQ && rbt_at_l_or_null.team == rc.getTeam()) {
+                        locOfHQ = l;
+                    }
+                }
+            } else if(l.equals(locOfHQ)) {
+                where_ive_been.clear();
+                where_ive_been_map.clear();
+                where_ive_been_obstruction_index_if_known = -1;
+            }
+        }
         if(where_ive_been.size() == 0 || rc.getLocation() != where_ive_been.get(where_ive_been.size() - 1)) {
             where_ive_been.add(rc.getLocation());
         }
@@ -241,7 +255,7 @@ public strictfp class RobotPlayer {
         }
 
         boolean has_moved_toward_soup = false;
-        if(RobotType.MINER.soupLimit < rc.getSoupCarrying()) {
+        if(rc.getSoupCarrying() < RobotType.MINER.soupLimit) {
             has_moved_toward_soup = tryGoTowardSoup();
         }
         if(!has_moved_toward_soup && rc.getSoupCarrying() > 0) {
