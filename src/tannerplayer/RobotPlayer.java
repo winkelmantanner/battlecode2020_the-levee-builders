@@ -57,6 +57,7 @@ public strictfp class RobotPlayer {
     static int planned_route_index = -1; // used for exploring
 
     static ObservationRecord [][] internalMap = null; // used by everyone
+    static MapLocation locOfHQ = null;
 
 
 
@@ -81,6 +82,14 @@ public strictfp class RobotPlayer {
         if(internalMap == null) {
             internalMap = new ObservationRecord[rc.getMapWidth()][rc.getMapHeight()];
         }
+
+        int bytecodenumbefore = Clock.getBytecodeNum();
+        int roundnumbefore = rc.getRoundNum();
+        updateInternalMap();
+        System.out.println("updateInternalMap took " + String.valueOf(Clock.getBytecodeNum() - bytecodenumbefore) + " bytecodes");
+        System.out.println("roundnumbefore " + String.valueOf(roundnumbefore));
+        System.out.println("roundnum now " + rc.getRoundNum());
+
 
         System.out.println("I'm a " + rc.getType() + " and I just got created!");
         while (true) {
@@ -129,7 +138,14 @@ public strictfp class RobotPlayer {
             ) {
                 MapLocation loc = new MapLocation(x, y);
                 if(rc.canSenseLocation(loc)) {
-                    internalMap[x][y] = new ObservationRecord(rc, loc);
+                    ObservationRecord rec = new ObservationRecord(rc, loc);
+                    internalMap[x][y] = rec;
+                    if(rec.building_if_any != null
+                      && rec.building_if_any.getType() == RobotType.HQ
+                      && rec.building_if_any.team == rc.getTeam()
+                    ) {
+                        locOfHQ = new MapLocation(x, y);
+                    }
                     switch (rc.getType()) {
                         case MINER:
                             if(rc.senseSoup(loc) > 0) {
