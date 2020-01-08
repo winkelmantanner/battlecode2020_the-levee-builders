@@ -44,7 +44,7 @@ public strictfp class RobotPlayer {
 
     static int ceilOfSensorRadius;
 
-    static final int MAX_ELEVATION_STEP = 3; // They didn't make this programmatically accessable.  The specification says 3.
+    static final int MAX_ELEVATION_STEP = GameConstants.MAX_DIRT_DIFFERENCE; // I didn't see this in GameConstants until I'd already made this
 
     static final int NUM_MINERS_TO_BUILD = 3; // used by HQ
     static int num_miners_built = 0; // used by HQ
@@ -55,7 +55,7 @@ public strictfp class RobotPlayer {
 
     static HashMap<String, ObservationRecord> where_ive_been_map = new HashMap<String, ObservationRecord>();
     static ArrayList<MapLocation> where_ive_been = new ArrayList<MapLocation>();
-    static int where_ive_been_obstruction_index_if_known = -1;
+    static int where_ive_been_obstruction_index_if_known = -1; // The miners current wander around randomly hoping to find the HQ or a location in where_ive_been_map if where_ive_been was obstructed
     static Direction current_dir = null;
 
 
@@ -97,7 +97,7 @@ public strictfp class RobotPlayer {
                     case NET_GUN:            runNetGun();            break;
                 }
 
-                if(Clock.getBytecodeNum() >= 2000) {
+                if(Clock.getBytecodeNum() >= 5000) {
                     System.out.println("Bytecodes " + String.valueOf(Clock.getBytecodeNum()));
                 }
 
@@ -189,6 +189,11 @@ public strictfp class RobotPlayer {
         for(Direction dir : directions) {
             MapLocation l = rc.getLocation().add(dir);
             if(locOfHQ == null) {
+                // for(RobotInfo rbt : rc.senseNearbyRobots()) {
+                //     if(rbt.getType() == RobotType.HQ && rbt.team == rc.getTeam()) {
+                //         locOfHQ = rbt.location;
+                //     }
+                // }
                 if(isValid(l) && rc.canSenseLocation(l)) {
                     RobotInfo rbt_at_l_or_null = rc.senseRobotAtLocation(l);
                     if(rbt_at_l_or_null != null && rbt_at_l_or_null.type == RobotType.HQ && rbt_at_l_or_null.team == rc.getTeam()) {
@@ -290,8 +295,21 @@ public strictfp class RobotPlayer {
 
     static void runLandscaper() throws GameActionException {
         updateWhereIveBeenRecords();
-        for(Direction dir : directions) {
-            tryNonobstructiveDig(dir);
+        if(locOfHQ != null) {
+            if(max_difference(locOfHQ, rc.getLocation()) >= 7) {
+                for(Direction dir : directions) {
+                    tryNonobstructiveDig(dir);
+                }
+            } else {
+                for(Direction dir : directions) {
+                    if(max_difference(rc.getLocation().add(dir), locOfHQ) == 1) {
+                        tryDeposit(dir);
+                    }
+                }
+            }
+            if(rc.getDirtCarrying() >= RobotType.LANDSCAPER.dirtLimit) {
+                goBackAlongWhereIveBeen();
+            }
         }
         tryGoSomewhere();
     }
@@ -411,6 +429,14 @@ public strictfp class RobotPlayer {
                 rc.digDirt(dir);
                 return true;
             }
+        }
+        return false;
+    }
+
+    static boolean tryDeposit(final Direction dir) throws GameActionException {
+        if(rc.canDepositDirt(dir) && !rc.getLocation().add(dir).equals(locOfHQ)) {
+            rc.depositDirt(dir);
+            return true;
         }
         return false;
     }
