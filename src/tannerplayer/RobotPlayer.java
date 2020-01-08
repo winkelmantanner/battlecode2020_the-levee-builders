@@ -144,11 +144,11 @@ public strictfp class RobotPlayer {
         }
     }
 
-    static void tryGoTowardSoup() throws GameActionException {
+    static boolean tryGoTowardSoup() throws GameActionException {
         int bcbefore = Clock.getBytecodeNum();
         int turnbefore = rc.getRoundNum();
+        boolean found_soup = false;
         if(rc.isReady()) {
-            boolean found_soup = false;
             for(Direction dir : directions) {
                 MapLocation ml = rc.getLocation();
                 boolean stop = false;
@@ -178,9 +178,30 @@ public strictfp class RobotPlayer {
         }
 
         System.out.println("tryGoTowardSoup turns " + String.valueOf(rc.getRoundNum() - turnbefore) + " bytecodes " + String.valueOf(Clock.getBytecodeNum() - bcbefore));
+        return found_soup;
+    }
+
+    static boolean goBackAlongWhereIveBeen() throws GameActionException {
+        // this function actually removes the last entry from where_ive_been
+        if(rc.isReady()) {
+            int last_index_im_not_at = where_ive_been.size() - 1;
+            while(last_index_im_not_at >= 0 && rc.getLocation().equals(where_ive_been.get(last_index_im_not_at))) {
+                last_index_im_not_at--;
+            }
+            if(last_index_im_not_at >= 0 && safeTryMove(rc.getLocation().directionTo(where_ive_been.get(last_index_im_not_at)))) {
+                for(int i = where_ive_been.size() - 1; i >= last_index_im_not_at; i--) {
+                    where_ive_been.remove(i);
+                }
+                return true;
+            }
+        }
+        return false;
     }
 
     static void runMiner() throws GameActionException {
+        if(where_ive_been.size() == 0 || rc.getLocation() != where_ive_been.get(where_ive_been.size() - 1)) {
+            where_ive_been.add(rc.getLocation());
+        }
         for (Direction dir : directions)
             if (tryRefine(dir))
                 System.out.println("I refined soup! " + rc.getTeamSoup());
@@ -188,7 +209,14 @@ public strictfp class RobotPlayer {
             if (tryMine(dir))
                 System.out.println("I mined soup! " + rc.getSoupCarrying());
         tryBuild(randomSpawnedByMiner(), randomDirection());
-        tryGoTowardSoup();
+
+        boolean has_moved_toward_soup = false;
+        if(RobotType.MINER.soupLimit < rc.getSoupCarrying()) {
+            has_moved_toward_soup = tryGoTowardSoup();
+        }
+        if(!has_moved_toward_soup && rc.getSoupCarrying() > 0) {
+            goBackAlongWhereIveBeen();
+        }
         tryGoSomewhere();
     }
 
