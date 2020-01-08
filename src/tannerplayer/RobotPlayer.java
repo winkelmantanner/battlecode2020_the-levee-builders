@@ -53,6 +53,9 @@ public strictfp class RobotPlayer {
 
     static MapLocation locOfHQ = null;
 
+    static ArrayList<MapLocation> where_ive_been = new ArrayList<MapLocation>();
+    static Direction current_dir = null;
+
 
 
     /**
@@ -70,7 +73,6 @@ public strictfp class RobotPlayer {
         roundNumCreated = rc.getRoundNum();
 
         ceilOfSensorRadius = (int) ceil(sqrt(rc.getType().sensorRadiusSquared));
-
 
 
         System.out.println("I'm a " + rc.getType() + " and I just got created!");
@@ -122,6 +124,62 @@ public strictfp class RobotPlayer {
       return max(abs(ml1.x - ml2.x), abs(ml1.y - ml2.y));
     }
 
+    static void tryGoSomewhere() throws GameActionException {
+        if(rc.isReady()) {
+            if(Math.random() < 0.2) {
+                current_dir = null;
+            }
+            if(current_dir != null) {
+                if(!safeTryMove(current_dir)) {
+                    current_dir = null;
+                }
+            }
+            if(current_dir == null) {
+                current_dir = randomDirection();
+                if(!safeTryMove(current_dir)) {
+                    current_dir = null;
+                    // and just don't move
+                }
+            }
+        }
+    }
+
+    static void tryGoTowardSoup() throws GameActionException {
+        int bcbefore = Clock.getBytecodeNum();
+        int turnbefore = rc.getRoundNum();
+        if(rc.isReady()) {
+            boolean found_soup = false;
+            for(Direction dir : directions) {
+                MapLocation ml = rc.getLocation();
+                boolean stop = false;
+                int last_elevation = rc.senseElevation(ml);
+                while(!stop) {
+                    ml = ml.add(dir);
+                    if(!isValid(ml)
+                      || !rc.canSenseLocation(ml)
+                      || rc.senseFlooding(ml)
+                      || abs(rc.senseElevation(ml) - last_elevation) > 3
+                      || null == rc.senseRobotAtLocation(ml)
+                    ) {
+                      stop = true;
+                    } else {
+                        last_elevation = rc.senseElevation(ml);
+                        if(0 < rc.senseSoup(ml) && rc.canMove(dir)) {
+                            current_dir = dir;
+                            found_soup = true;
+                            stop = true;
+                        }
+                    }
+                }
+            }
+            if(found_soup) {
+                rc.move(current_dir); // we already checked canMove and isReady
+            }
+        }
+
+        System.out.println("tryGoTowardSoup turns " + String.valueOf(rc.getRoundNum() - turnbefore) + " bytecodes " + String.valueOf(Clock.getBytecodeNum() - bcbefore));
+    }
+
     static void runMiner() throws GameActionException {
         for (Direction dir : directions)
             if (tryRefine(dir))
@@ -129,8 +187,9 @@ public strictfp class RobotPlayer {
         for (Direction dir : directions)
             if (tryMine(dir))
                 System.out.println("I mined soup! " + rc.getSoupCarrying());
-        for (Direction dir : directions)
-            tryBuild(randomSpawnedByMiner(), randomDirection());
+        tryBuild(randomSpawnedByMiner(), randomDirection());
+        tryGoTowardSoup();
+        tryGoSomewhere();
     }
 
     static void runRefinery() throws GameActionException {
@@ -196,6 +255,16 @@ public strictfp class RobotPlayer {
      */
     static RobotType randomSpawnedByMiner() {
         return spawnedByMiner[(int) (Math.random() * spawnedByMiner.length)];
+    }
+
+    static boolean safeTryMove(Direction dir) throws GameActionException {
+        MapLocation landing_space = rc.getLocation().add(dir);
+        if ( rc.canSenseLocation(landing_space)
+          && !rc.senseFlooding(landing_space)
+        ) {
+            return tryMove(dir);
+        }
+        return false;
     }
 
     static boolean tryMove() throws GameActionException {
