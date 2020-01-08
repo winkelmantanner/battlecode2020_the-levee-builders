@@ -39,6 +39,7 @@ public strictfp class RobotPlayer {
             RobotType.FULFILLMENT_CENTER, RobotType.NET_GUN};
 
     static int turnCount;
+    static int roundNumCreated = -1;
 
 
     static int ceilOfSensorRadius;
@@ -48,10 +49,17 @@ public strictfp class RobotPlayer {
     static final int NUM_MINERS_TO_BUILD = 1; // used by HQ
     static int num_miners_built = 0; // used by HQ
 
-    static ArrayList<MapLocation> planned_route = null;
-    static int planned_route_index = -1;
+    static int num_landscapers_built = 0; // design school
 
-    static ObservationRecord [][] internalMap = null;
+    static ArrayList<MapLocation> where_crude_soup_was_sensed_this_turn = new ArrayList<MapLocation>(); // miner
+
+    static ArrayList<MapLocation> planned_route = null; // used for exploring
+    static int planned_route_index = -1; // used for exploring
+
+    static ObservationRecord [][] internalMap = null; // used by everyone
+
+
+
 
 
     /**
@@ -66,6 +74,7 @@ public strictfp class RobotPlayer {
         RobotPlayer.rc = rc;
 
         turnCount = 0;
+        roundNumCreated = rc.getRoundNum();
 
         ceilOfSensorRadius = (int) ceil(sqrt(rc.getType().sensorRadiusSquared));
 
@@ -78,41 +87,6 @@ public strictfp class RobotPlayer {
             turnCount += 1;
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
-                final int min_sensable_x = max(0, rc.getLocation().x - ceilOfSensorRadius);
-                final int max_sensable_x = min(rc.getMapWidth() - 1, rc.getLocation().x + ceilOfSensorRadius);
-                final int min_sensable_y = max(0, rc.getLocation().y - ceilOfSensorRadius);
-                final int max_sensable_y = min(rc.getMapHeight() - 1, rc.getLocation().y + ceilOfSensorRadius);
-                for(
-                    int x = min_sensable_x;
-                    x <= max_sensable_x;
-                    x++
-                ) {
-                    for(
-                      int y = min_sensable_y;
-                      y <= max_sensable_y;
-                      y++
-                    ) {
-                        if(rc.canSenseLocation(new MapLocation(x, y))) {
-                            internalMap[x][y] = new ObservationRecord(rc, new MapLocation(x, y));
-                        }
-                    }
-                }
-
-                // for(int y = 0; y < rc.getMapHeight(); y++) {
-                //   for(int x = 0; x < rc.getMapWidth(); x++) {
-                //     if(internalMap[x][y] == null) {
-                //        System.out.print(".");
-                //     } else if(internalMap[x][y].elevation < 0) {
-                //       System.out.print("-");
-                //     } else if(internalMap[x][y].elevation > 10) {
-                //       System.out.print("+");
-                //     } else {
-                //       System.out.print(String.valueOf(internalMap[x][y].elevation));
-                //     }
-                //   }
-                //   System.out.println("");
-                // }
-
                 // Here, we've separated the controls into a different method for each RobotType.
                 // You can add the missing ones or rewrite this into your own control structure.
                 // System.out.println("I'm a " + rc.getType() + "! Location " + rc.getLocation());
@@ -136,6 +110,50 @@ public strictfp class RobotPlayer {
                 e.printStackTrace();
             }
         }
+    }
+
+    static void updateInternalMap() throws GameActionException {
+        final int min_sensable_x = max(0, rc.getLocation().x - ceilOfSensorRadius);
+        final int max_sensable_x = min(rc.getMapWidth() - 1, rc.getLocation().x + ceilOfSensorRadius);
+        final int min_sensable_y = max(0, rc.getLocation().y - ceilOfSensorRadius);
+        final int max_sensable_y = min(rc.getMapHeight() - 1, rc.getLocation().y + ceilOfSensorRadius);
+        for(
+            int x = min_sensable_x;
+            x <= max_sensable_x;
+            x++
+        ) {
+            for(
+              int y = min_sensable_y;
+              y <= max_sensable_y;
+              y++
+            ) {
+                MapLocation loc = new MapLocation(x, y);
+                if(rc.canSenseLocation(loc)) {
+                    internalMap[x][y] = new ObservationRecord(rc, loc);
+                    switch (rc.getType()) {
+                        case MINER:
+                            if(rc.senseSoup(loc) > 0) {
+                                where_crude_soup_was_sensed_this_turn.add(loc);
+                            }
+                    }
+                }
+            }
+        }
+
+        // for(int y = 0; y < rc.getMapHeight(); y++) {
+        //   for(int x = 0; x < rc.getMapWidth(); x++) {
+        //     if(internalMap[x][y] == null) {
+        //        System.out.print(".");
+        //     } else if(internalMap[x][y].elevation < 0) {
+        //       System.out.print("-");
+        //     } else if(internalMap[x][y].elevation > 10) {
+        //       System.out.print("+");
+        //     } else {
+        //       System.out.print(String.valueOf(internalMap[x][y].elevation));
+        //     }
+        //   }
+        //   System.out.println("");
+        // }
     }
 
     static boolean isValid(MapLocation ml) {
@@ -232,6 +250,7 @@ public strictfp class RobotPlayer {
     }
 
     static void runHQ() throws GameActionException {
+        tryBlockchain();
         if(num_miners_built < NUM_MINERS_TO_BUILD) {
             for (Direction dir : directions)
                 if(tryBuild(RobotType.MINER, dir)) {
@@ -240,8 +259,50 @@ public strictfp class RobotPlayer {
         }
     }
 
+    static boolean move_toward_nearest_crude_soup_if_applicable() {
+        try {
+            if(where_crude_soup_was_sensed_this_turn.size() > 0) {
+                MapLocation loc_of_closest_crude_soup = where_crude_soup_was_sensed_this_turn.get(0);
+                int dist_to_nearest_crude_soup = rc.getMapHeight() + rc.getMapWidth();
+                for(MapLocation ml : where_crude_soup_was_sensed_this_turn) {
+                    if(max_difference(ml, rc.getLocation()) < dist_to_nearest_crude_soup) {
+                        loc_of_closest_crude_soup = ml;
+                        dist_to_nearest_crude_soup = max_difference(ml, rc.getLocation());
+                    }
+                }
+                boolean path_is_clear = true;
+                MapLocation curr = rc.getLocation();
+                while(!curr.equals(loc_of_closest_crude_soup)) {
+                    MapLocation prev = curr;
+                    curr = curr.add(curr.directionTo(loc_of_closest_crude_soup));
+                    if(
+                      rc.senseElevation(curr) - rc.senseElevation(prev) <= MAX_ELEVATION_STEP &&
+                      !rc.senseFlooding(curr) &&
+                      null == rc.senseRobotAtLocation(curr)
+                    ) {
+                        continue;
+                    } else {
+                        path_is_clear = false;
+                    }
+                }
+                if(path_is_clear && rc.canMove(curr.directionTo(loc_of_closest_crude_soup))) {
+                  return tryMove(curr.directionTo(loc_of_closest_crude_soup));
+                }
+            }
+        } catch (Exception e) {
+            System.out.println(rc.getType() + " Exception");
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    static int max_difference(MapLocation ml1, MapLocation ml2) {
+      return max(abs(ml1.x - ml2.x), abs(ml1.y - ml2.y));
+    }
+
     static void runMiner() throws GameActionException {
-        tryBlockchain();
+        updateInternalMap();
+        
         for (Direction dir : directions)
             if (tryRefine(dir))
                 System.out.println("I refined soup! " + rc.getTeamSoup());
@@ -250,7 +311,13 @@ public strictfp class RobotPlayer {
                 System.out.println("I mined soup! " + rc.getSoupCarrying());
         for (Direction dir : directions)
             tryBuild(randomSpawnedByMiner(), randomDirection());
-        explore();
+        if(rc.isReady()) {
+          if(!move_toward_nearest_crude_soup_if_applicable()) {
+            explore();
+          }
+        }
+
+        where_crude_soup_was_sensed_this_turn = new ArrayList<MapLocation>();
     }
 
     static void runRefinery() throws GameActionException {
@@ -262,7 +329,12 @@ public strictfp class RobotPlayer {
     }
 
     static void runDesignSchool() throws GameActionException {
-
+      for (Direction dir : directions) {
+        if(rc.canBuildRobot(RobotType.LANDSCAPER, dir)) {
+          rc.buildRobot(RobotType.LANDSCAPER, dir);
+          num_landscapers_built++;
+        }
+      }
     }
 
     static void runFulfillmentCenter() throws GameActionException {
