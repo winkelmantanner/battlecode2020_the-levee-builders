@@ -290,6 +290,9 @@ public strictfp class RobotPlayer {
 
     static void runLandscaper() throws GameActionException {
         updateWhereIveBeenRecords();
+        for(Direction dir : directions) {
+            tryNonobstructiveDig(dir);
+        }
         tryGoSomewhere();
     }
 
@@ -386,6 +389,30 @@ public strictfp class RobotPlayer {
             rc.buildRobot(type, dir);
             return true;
         } else return false;
+    }
+
+    static boolean tryNonobstructiveDig(Direction dir) throws GameActionException {
+        MapLocation target_loc = rc.getLocation().add(dir);
+        if(rc.canDigDirt(dir) && rc.canSenseLocation(target_loc)) {
+            int target_current_elev = rc.senseElevation(target_loc);
+            boolean is_ok_to_dig = true;
+            for(Direction ndir : directions) {
+                MapLocation adj = target_loc.add(ndir);
+                if(rc.canSenseLocation(adj)
+                  && target_current_elev > rc.senseElevation(adj) - MAX_ELEVATION_STEP
+                ) {
+                  // nothing
+                } else {
+                  is_ok_to_dig = false;
+                  break;
+                }
+            }
+            if(is_ok_to_dig) {
+              rc.digDirt(dir);
+              return true;
+            }
+        }
+        return false;
     }
 
     /**
