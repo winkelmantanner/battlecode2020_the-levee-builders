@@ -5,7 +5,9 @@ import static java.lang.Math.sqrt;
 import static java.lang.Math.ceil;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
+import static java.lang.Math.abs;
 
+import java.util.*;
 
 // Tanner's notes on how to make this work:
 // Tanner's Mac has 2 versions of Java in /Library/Java/JavaVirtualMachines/
@@ -41,8 +43,12 @@ public strictfp class RobotPlayer {
 
     static int ceilOfSensorRadius;
 
+    static final int MAX_ELEVATION_STEP = 3; // They didn't make this programmatically accessable.  The specification says 3.
+
     static final int NUM_MINERS_TO_BUILD = 1; // used by HQ
     static int num_miners_built = 0; // used by HQ
+
+    static ArrayList<MapLocation> planned_route = null;
 
     static ObservationRecord [][] internalMap = null;
 
@@ -72,17 +78,17 @@ public strictfp class RobotPlayer {
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
                 final int min_sensable_x = max(0, rc.getLocation().x - ceilOfSensorRadius);
-                final int max_sensable_x = min(rc.getMapWidth(), rc.getLocation().x + ceilOfSensorRadius);
+                final int max_sensable_x = min(rc.getMapWidth() - 1, rc.getLocation().x + ceilOfSensorRadius);
                 final int min_sensable_y = max(0, rc.getLocation().y - ceilOfSensorRadius);
-                final int max_sensable_y = min(rc.getMapHeight(), rc.getLocation().y + ceilOfSensorRadius);
+                final int max_sensable_y = min(rc.getMapHeight() - 1, rc.getLocation().y + ceilOfSensorRadius);
                 for(
                     int x = min_sensable_x;
-                    x < max_sensable_x;
+                    x <= max_sensable_x;
                     x++
                 ) {
                     for(
                       int y = min_sensable_y;
-                      y < max_sensable_y;
+                      y <= max_sensable_y;
                       y++
                     ) {
                         if(rc.canSenseLocation(new MapLocation(x, y))) {
@@ -90,6 +96,21 @@ public strictfp class RobotPlayer {
                         }
                     }
                 }
+
+                // for(int y = 0; y < rc.getMapHeight(); y++) {
+                //   for(int x = 0; x < rc.getMapWidth(); x++) {
+                //     if(internalMap[x][y] == null) {
+                //        System.out.print(".");
+                //     } else if(internalMap[x][y].elevation < 0) {
+                //       System.out.print("-");
+                //     } else if(internalMap[x][y].elevation > 10) {
+                //       System.out.print("+");
+                //     } else {
+                //       System.out.print(String.valueOf(internalMap[x][y].elevation));
+                //     }
+                //   }
+                //   System.out.println("");
+                // }
 
                 // Here, we've separated the controls into a different method for each RobotType.
                 // You can add the missing ones or rewrite this into your own control structure.
@@ -116,6 +137,76 @@ public strictfp class RobotPlayer {
         }
     }
 
+    static boolean isValid(MapLocation ml) {
+      return ml.x >= 0 && ml.y >= 0 && ml.x < rc.getMapWidth() && ml.y < rc.getMapHeight();
+    }
+
+    static void smartMove() {
+        try {
+            int qi = 0;
+            ArrayList<MapLocation> q = new ArrayList<MapLocation>();
+            HashMap<String, MapLocation> prev = new HashMap<String, MapLocation>();
+            MapLocation target_map_location = null;
+            q.add(rc.getLocation());
+            boolean stop = false;
+            while (!stop) {
+                MapLocation current = q.get(qi);
+                ObservationRecord current_record = internalMap[current.x][current.y];
+                if(current_record != null) {
+                    for (Direction dir : directions) {
+                        MapLocation result = current.add(dir);
+                        String result_string = result.toString();
+                        if (isValid(result) && !prev.containsKey(result_string)) {
+                            ObservationRecord result_record = internalMap[result.x][result.y];
+                            if (result_record == null) {
+                                stop = true;
+                                target_map_location = result;
+                                prev.put(result_string, current);
+                            } else if (abs(current_record.elevation - result_record.elevation) <= MAX_ELEVATION_STEP
+                              && result_record.elevation > GameConstants.getWaterLevel(turnCount)
+                              && result_record.building_if_any == null
+                              && !result_record.was_flooded
+                            ) {
+                                q.add(result);
+                                prev.put(result_string, current);
+                            }
+                        }
+                    }
+                } else {
+                  System.out.println("current_record was null");
+                  stop = true;
+                }
+                qi++;
+                if(qi >= q.size()) {
+                  stop = true;
+                }
+            }
+            planned_route = new ArrayList<MapLocation>();
+            if(target_map_location != null) {
+              int infLoopPreventer = 1000;
+              MapLocation curr = target_map_location;
+              while((curr.x != rc.getLocation().x || curr.y != rc.getLocation().y) && infLoopPreventer > 0) {
+                planned_route.add(curr);
+                curr = prev.get(curr.toString());
+                if(curr == null) {
+                  System.out.println("curr is null");
+                  break;
+                }
+                infLoopPreventer--;
+              }
+              Collections.reverse(planned_route);
+            }
+            System.out.println("Planned a route.  Bytecodes left:" + String.valueOf(Clock.getBytecodesLeft()) + " Target location:" + target_map_location.toString());
+
+            if(planned_route.size() > 0 && !rc.senseFlooding(planned_route.get(0)) && tryMove(rc.getLocation().directionTo(planned_route.get(0)))) {
+              System.out.println("I smartmoved");
+            }
+        } catch (Exception e) {
+            System.out.println(rc.getType() + " Exception");
+            e.printStackTrace();
+        }
+    }
+
     static void runHQ() throws GameActionException {
         if(num_miners_built < NUM_MINERS_TO_BUILD) {
             for (Direction dir : directions)
@@ -127,16 +218,15 @@ public strictfp class RobotPlayer {
 
     static void runMiner() throws GameActionException {
         tryBlockchain();
-        tryMove(randomDirection());
-        // tryBuild(randomSpawnedByMiner(), randomDirection());
-        for (Direction dir : directions)
-            tryBuild(RobotType.FULFILLMENT_CENTER, dir);
         for (Direction dir : directions)
             if (tryRefine(dir))
                 System.out.println("I refined soup! " + rc.getTeamSoup());
         for (Direction dir : directions)
             if (tryMine(dir))
                 System.out.println("I mined soup! " + rc.getSoupCarrying());
+        for (Direction dir : directions)
+            tryBuild(randomSpawnedByMiner(), randomDirection());
+        smartMove();
     }
 
     static void runRefinery() throws GameActionException {
