@@ -46,7 +46,7 @@ public strictfp class RobotPlayer {
 
     static final int MAX_ELEVATION_STEP = 3; // They didn't make this programmatically accessable.  The specification says 3.
 
-    static final int NUM_MINERS_TO_BUILD = 1; // used by HQ
+    static final int NUM_MINERS_TO_BUILD = 3; // used by HQ
     static int num_miners_built = 0; // used by HQ
 
     static int num_landscapers_built = 0; // design school
@@ -114,7 +114,7 @@ public strictfp class RobotPlayer {
 
     static void runHQ() throws GameActionException {
         tryBlockchain();
-        if(num_miners_built < NUM_MINERS_TO_BUILD) {
+        if(num_miners_built < NUM_MINERS_TO_BUILD && rc.getRoundNum() > 2 * num_miners_built) {
             for (Direction dir : directions)
                 if(tryBuild(RobotType.MINER, dir)) {
                     num_miners_built++;
@@ -230,12 +230,15 @@ public strictfp class RobotPlayer {
     static void runMiner() throws GameActionException {
         updateWhereIveBeenRecords();
         for (Direction dir : directions)
-            if (tryRefine(dir))
-                System.out.println("I refined soup! " + rc.getTeamSoup());
-        for (Direction dir : directions)
             if (tryMine(dir))
                 System.out.println("I mined soup! " + rc.getSoupCarrying());
-        tryBuild(randomSpawnedByMiner(), randomDirection());
+        for (Direction dir : directions)
+            if (tryRefine(dir))
+                System.out.println("I refined soup! " + rc.getTeamSoup());
+        if(roundNumCreated <= 2) {
+            // only one miner should build so that we can control what is built
+            tryBuild(randomSpawnedByMiner(), randomDirection());
+        }
 
         boolean has_moved_toward_soup = false;
         if(RobotType.MINER.soupLimit < rc.getSoupCarrying()) {
