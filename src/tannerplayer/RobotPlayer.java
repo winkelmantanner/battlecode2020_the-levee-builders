@@ -401,15 +401,15 @@ public strictfp class RobotPlayer {
                 if(rc.canSenseLocation(adj)
                   && target_current_elev > rc.senseElevation(adj) - MAX_ELEVATION_STEP
                 ) {
-                  // nothing
+                    // nothing
                 } else {
-                  is_ok_to_dig = false;
-                  break;
+                    is_ok_to_dig = false;
+                    break;
                 }
             }
             if(is_ok_to_dig) {
-              rc.digDirt(dir);
-              return true;
+                rc.digDirt(dir);
+                return true;
             }
         }
         return false;
