@@ -97,7 +97,9 @@ public strictfp class RobotPlayer {
                     case NET_GUN:            runNetGun();            break;
                 }
 
-                System.out.println("Bytecodes " + String.valueOf(Clock.getBytecodeNum()));
+                if(Clock.getBytecodeNum() >= 2000) {
+                    System.out.println("Bytecodes " + String.valueOf(Clock.getBytecodeNum()));
+                }
 
                 // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
                 Clock.yield();
@@ -187,7 +189,7 @@ public strictfp class RobotPlayer {
         for(Direction dir : directions) {
             MapLocation l = rc.getLocation().add(dir);
             if(locOfHQ == null) {
-                if(rc.canSenseLocation(l)) {
+                if(isValid(l) && rc.canSenseLocation(l)) {
                     RobotInfo rbt_at_l_or_null = rc.senseRobotAtLocation(l);
                     if(rbt_at_l_or_null != null && rbt_at_l_or_null.type == RobotType.HQ && rbt_at_l_or_null.team == rc.getTeam()) {
                         locOfHQ = l;
@@ -287,7 +289,8 @@ public strictfp class RobotPlayer {
     }
 
     static void runLandscaper() throws GameActionException {
-
+        updateWhereIveBeenRecords();
+        tryGoSomewhere();
     }
 
     static void runDeliveryDrone() throws GameActionException {
