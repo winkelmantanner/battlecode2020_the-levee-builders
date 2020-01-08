@@ -53,7 +53,9 @@ public strictfp class RobotPlayer {
 
     static MapLocation locOfHQ = null;
 
+    static HashMap<String, ObservationRecord> where_ive_been_map = new HashMap<String, ObservationRecord>();
     static ArrayList<MapLocation> where_ive_been = new ArrayList<MapLocation>();
+    static int where_ive_been_obstruction_index_if_known = -1;
     static Direction current_dir = null;
 
 
@@ -181,9 +183,34 @@ public strictfp class RobotPlayer {
         return found_soup;
     }
 
+    static void updateWhereIveBeenRecords() throws GameActionException {
+        // To be called for moving units at the beginning of each turn
+        if(where_ive_been.size() == 0 || rc.getLocation() != where_ive_been.get(where_ive_been.size() - 1)) {
+            where_ive_been.add(rc.getLocation());
+        }
+        String location_string = rc.getLocation().toString();
+        ObservationRecord prev_rec_if_any = where_ive_been_map.get(location_string);
+        if(null == prev_rec_if_any) {
+            where_ive_been_map.put(location_string, new ObservationRecord(rc, rc.getLocation(), where_ive_been.size() - 1));
+        } else if(prev_rec_if_any.where_ive_been_index < where_ive_been.size() - 1) {
+            for(
+              int index = where_ive_been.size() - 1;
+              index > prev_rec_if_any.where_ive_been_index;
+              index--
+            ) {
+                where_ive_been_map.remove(where_ive_been.get(index).toString()); // does not throw if the key is not in the map
+                where_ive_been.remove(index);
+            }
+            if(prev_rec_if_any.where_ive_been_index <= where_ive_been_obstruction_index_if_known) {
+                where_ive_been_obstruction_index_if_known = -1;
+            }
+            where_ive_been_map.put(location_string, new ObservationRecord(rc, rc.getLocation(), where_ive_been.size() - 1));
+        }
+    }
+
     static boolean goBackAlongWhereIveBeen() throws GameActionException {
         // this function actually removes the last entry from where_ive_been
-        if(rc.isReady()) {
+        if(where_ive_been_obstruction_index_if_known < 0 && rc.isReady()) {
             int last_index_im_not_at = where_ive_been.size() - 1;
             while(last_index_im_not_at >= 0 && rc.getLocation().equals(where_ive_been.get(last_index_im_not_at))) {
                 last_index_im_not_at--;
@@ -193,15 +220,15 @@ public strictfp class RobotPlayer {
                     where_ive_been.remove(i);
                 }
                 return true;
+            } else {
+              where_ive_been_obstruction_index_if_known = last_index_im_not_at;
             }
         }
         return false;
     }
 
     static void runMiner() throws GameActionException {
-        if(where_ive_been.size() == 0 || rc.getLocation() != where_ive_been.get(where_ive_been.size() - 1)) {
-            where_ive_been.add(rc.getLocation());
-        }
+        updateWhereIveBeenRecords();
         for (Direction dir : directions)
             if (tryRefine(dir))
                 System.out.println("I refined soup! " + rc.getTeamSoup());
