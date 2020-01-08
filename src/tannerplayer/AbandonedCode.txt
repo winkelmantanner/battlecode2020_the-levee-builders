@@ -1,0 +1,243 @@
+
+
+
+    static ArrayList<MapLocation> where_crude_soup_was_sensed_this_turn = new ArrayList<MapLocation>(); // miner
+
+    static ArrayList<MapLocation> planned_route = null; // used for exploring
+    static int planned_route_index = -1; // used for exploring
+
+    static ObservationRecord [][] internalMap = null; // used by everyone
+
+
+
+
+
+
+
+// in run but not in the loop
+if(internalMap == null) {
+            internalMap = new ObservationRecord[rc.getMapWidth()][rc.getMapHeight()];
+        }
+
+        int bytecodenumbefore = Clock.getBytecodeNum();
+        int roundnumbefore = rc.getRoundNum();
+        updateInternalMap();
+        System.out.println("updateInternalMap took " + String.valueOf(Clock.getBytecodeNum() - bytecodenumbefore) + " bytecodes");
+        System.out.println("roundnumbefore " + String.valueOf(roundnumbefore));
+        System.out.println("roundnum now " + rc.getRoundNum());
+
+
+
+
+
+
+
+
+
+static void updateInternalMap() throws GameActionException {
+        final int min_sensable_x = max(0, rc.getLocation().x - ceilOfSensorRadius);
+        final int max_sensable_x = min(rc.getMapWidth() - 1, rc.getLocation().x + ceilOfSensorRadius);
+        final int min_sensable_y = max(0, rc.getLocation().y - ceilOfSensorRadius);
+        final int max_sensable_y = min(rc.getMapHeight() - 1, rc.getLocation().y + ceilOfSensorRadius);
+        for(
+            int x = min_sensable_x;
+            x <= max_sensable_x;
+            x++
+        ) {
+            for(
+              int y = min_sensable_y;
+              y <= max_sensable_y;
+              y++
+            ) {
+                MapLocation loc = new MapLocation(x, y);
+                if(rc.canSenseLocation(loc)) {
+                    ObservationRecord rec = new ObservationRecord(rc, loc);
+                    internalMap[x][y] = rec;
+                    if(rec.building_if_any != null
+                      && rec.building_if_any.getType() == RobotType.HQ
+                      && rec.building_if_any.team == rc.getTeam()
+                    ) {
+                        locOfHQ = new MapLocation(x, y);
+                    }
+                    switch (rc.getType()) {
+                        case MINER:
+                            if(rc.senseSoup(loc) > 0) {
+                                where_crude_soup_was_sensed_this_turn.add(loc);
+                            }
+                    }
+                }
+            }
+        }
+
+        // for(int y = 0; y < rc.getMapHeight(); y++) {
+        //   for(int x = 0; x < rc.getMapWidth(); x++) {
+        //     if(internalMap[x][y] == null) {
+        //        System.out.print(".");
+        //     } else if(internalMap[x][y].elevation < 0) {
+        //       System.out.print("-");
+        //     } else if(internalMap[x][y].elevation > 10) {
+        //       System.out.print("+");
+        //     } else {
+        //       System.out.print(String.valueOf(internalMap[x][y].elevation));
+        //     }
+        //   }
+        //   System.out.println("");
+        // }
+    }
+
+
+
+
+
+
+
+
+
+static boolean tryPlannedRouteMove() {
+        boolean success = false;
+        try {
+            if ( planned_route_index >= 0
+              && planned_route_index < planned_route.size()
+              && (planned_route_index == 0 || rc.getLocation().equals(planned_route.get(planned_route_index - 1)))
+            ) {
+                MapLocation dest = planned_route.get(planned_route_index);
+                Direction dir = rc.getLocation().directionTo(dest);
+                if(rc.canMove(dir) && rc.canSenseLocation(dest) && !rc.senseFlooding(dest)) {
+                    if(tryMove(dir)) {
+                        planned_route_index++;
+                        success = true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println(rc.getType() + " Exception in tryPlannedRouteMove");
+            e.printStackTrace();
+        }
+        return success;
+    }
+
+    static void explore() {
+        try {
+            if ( !tryPlannedRouteMove() ) {
+                int qi = 0;
+                ArrayList<MapLocation> q = new ArrayList<MapLocation>();
+                HashMap<String, MapLocation> prev = new HashMap<String, MapLocation>();
+                MapLocation target_map_location = null;
+                q.add(rc.getLocation());
+                boolean stop = false;
+                while (!stop) {
+                    MapLocation current = q.get(qi);
+                    ObservationRecord current_record = internalMap[current.x][current.y];
+                    if(current_record != null) {
+                        for (Direction dir : directions) {
+                            MapLocation result = current.add(dir);
+                            String result_string = result.toString();
+                            if (isValid(result) && !prev.containsKey(result_string)) {
+                                ObservationRecord result_record = internalMap[result.x][result.y];
+                                if (result_record == null) {
+                                    stop = true;
+                                    target_map_location = result;
+                                    prev.put(result_string, current);
+                                } else if (abs(current_record.elevation - result_record.elevation) <= MAX_ELEVATION_STEP
+                                  && result_record.building_if_any == null
+                                  && !result_record.was_flooded
+                                ) {
+                                    q.add(result);
+                                    prev.put(result_string, current);
+                                }
+                            }
+                        }
+                    } else {
+                      System.out.println("current_record was null");
+                      stop = true;
+                    }
+                    qi++;
+                    if(qi >= q.size()) {
+                      stop = true;
+                    }
+                }
+                planned_route = new ArrayList<MapLocation>();
+                planned_route_index = 0;
+                if(target_map_location != null) {
+                  int infLoopPreventer = 1000;
+                  MapLocation curr = target_map_location;
+                  while((curr.x != rc.getLocation().x || curr.y != rc.getLocation().y) && infLoopPreventer > 0) {
+                    planned_route.add(curr);
+                    curr = prev.get(curr.toString());
+                    if(curr == null) {
+                      System.out.println("curr is null");
+                      break;
+                    }
+                    infLoopPreventer--;
+                  }
+                  Collections.reverse(planned_route);
+                }
+                System.out.println("Planned a route.  Bytecodes left:" + String.valueOf(Clock.getBytecodesLeft()) + " Target location:" + target_map_location.toString());
+
+                tryPlannedRouteMove();
+            }
+        } catch (Exception e) {
+            System.out.println(rc.getType() + " Exception");
+            e.printStackTrace();
+        }
+    }
+
+
+static boolean move_toward_nearest_crude_soup_if_applicable() {
+        try {
+            if(where_crude_soup_was_sensed_this_turn.size() > 0) {
+                MapLocation loc_of_closest_crude_soup = where_crude_soup_was_sensed_this_turn.get(0);
+                int dist_to_nearest_crude_soup = rc.getMapHeight() + rc.getMapWidth();
+                for(MapLocation ml : where_crude_soup_was_sensed_this_turn) {
+                    if(max_difference(ml, rc.getLocation()) < dist_to_nearest_crude_soup) {
+                        loc_of_closest_crude_soup = ml;
+                        dist_to_nearest_crude_soup = max_difference(ml, rc.getLocation());
+                    }
+                }
+                boolean path_is_clear = true;
+                MapLocation curr = rc.getLocation();
+                while(!curr.equals(loc_of_closest_crude_soup)) {
+                    MapLocation prev = curr;
+                    curr = curr.add(curr.directionTo(loc_of_closest_crude_soup));
+                    if(
+                      rc.senseElevation(curr) - rc.senseElevation(prev) <= MAX_ELEVATION_STEP &&
+                      !rc.senseFlooding(curr) &&
+                      null == rc.senseRobotAtLocation(curr)
+                    ) {
+                        continue;
+                    } else {
+                        path_is_clear = false;
+                    }
+                }
+                if(path_is_clear && rc.canMove(curr.directionTo(loc_of_closest_crude_soup))) {
+                  return tryMove(curr.directionTo(loc_of_closest_crude_soup));
+                }
+            }
+        } catch (Exception e) {
+            System.out.println(rc.getType() + " Exception");
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+
+
+
+
+
+
+
+
+
+// at beginning of runMiner
+        updateInternalMap();
+
+
+// at end of runMiner
+        if(rc.isReady()) {
+          if(!move_toward_nearest_crude_soup_if_applicable()) {
+            explore();
+          }
+        }
+
+        where_crude_soup_was_sensed_this_turn = new ArrayList<MapLocation>();
