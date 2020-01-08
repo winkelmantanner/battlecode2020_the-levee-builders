@@ -49,6 +49,7 @@ public strictfp class RobotPlayer {
     static int num_miners_built = 0; // used by HQ
 
     static ArrayList<MapLocation> planned_route = null;
+    static int planned_route_index = -1;
 
     static ObservationRecord [][] internalMap = null;
 
@@ -141,65 +142,88 @@ public strictfp class RobotPlayer {
       return ml.x >= 0 && ml.y >= 0 && ml.x < rc.getMapWidth() && ml.y < rc.getMapHeight();
     }
 
-    static void smartMove() {
+    static boolean tryPlannedRouteMove() {
+        boolean success = false;
         try {
-            int qi = 0;
-            ArrayList<MapLocation> q = new ArrayList<MapLocation>();
-            HashMap<String, MapLocation> prev = new HashMap<String, MapLocation>();
-            MapLocation target_map_location = null;
-            q.add(rc.getLocation());
-            boolean stop = false;
-            while (!stop) {
-                MapLocation current = q.get(qi);
-                ObservationRecord current_record = internalMap[current.x][current.y];
-                if(current_record != null) {
-                    for (Direction dir : directions) {
-                        MapLocation result = current.add(dir);
-                        String result_string = result.toString();
-                        if (isValid(result) && !prev.containsKey(result_string)) {
-                            ObservationRecord result_record = internalMap[result.x][result.y];
-                            if (result_record == null) {
-                                stop = true;
-                                target_map_location = result;
-                                prev.put(result_string, current);
-                            } else if (abs(current_record.elevation - result_record.elevation) <= MAX_ELEVATION_STEP
-                              && result_record.elevation > GameConstants.getWaterLevel(turnCount)
-                              && result_record.building_if_any == null
-                              && !result_record.was_flooded
-                            ) {
-                                q.add(result);
-                                prev.put(result_string, current);
+            if ( planned_route_index >= 0
+              && planned_route_index < planned_route.size()
+              && (planned_route_index == 0 || rc.getLocation().equals(planned_route.get(planned_route_index - 1)))
+            ) {
+                MapLocation dest = planned_route.get(planned_route_index);
+                Direction dir = rc.getLocation().directionTo(dest);
+                if(rc.canMove(dir) && rc.canSenseLocation(dest) && !rc.senseFlooding(dest)) {
+                    if(tryMove(dir)) {
+                        planned_route_index++;
+                        success = true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println(rc.getType() + " Exception in tryPlannedRouteMove");
+            e.printStackTrace();
+        }
+        return success;
+    }
+
+    static void explore() {
+        try {
+            if ( !tryPlannedRouteMove() ) {
+                int qi = 0;
+                ArrayList<MapLocation> q = new ArrayList<MapLocation>();
+                HashMap<String, MapLocation> prev = new HashMap<String, MapLocation>();
+                MapLocation target_map_location = null;
+                q.add(rc.getLocation());
+                boolean stop = false;
+                while (!stop) {
+                    MapLocation current = q.get(qi);
+                    ObservationRecord current_record = internalMap[current.x][current.y];
+                    if(current_record != null) {
+                        for (Direction dir : directions) {
+                            MapLocation result = current.add(dir);
+                            String result_string = result.toString();
+                            if (isValid(result) && !prev.containsKey(result_string)) {
+                                ObservationRecord result_record = internalMap[result.x][result.y];
+                                if (result_record == null) {
+                                    stop = true;
+                                    target_map_location = result;
+                                    prev.put(result_string, current);
+                                } else if (abs(current_record.elevation - result_record.elevation) <= MAX_ELEVATION_STEP
+                                  && result_record.building_if_any == null
+                                  && !result_record.was_flooded
+                                ) {
+                                    q.add(result);
+                                    prev.put(result_string, current);
+                                }
                             }
                         }
+                    } else {
+                      System.out.println("current_record was null");
+                      stop = true;
                     }
-                } else {
-                  System.out.println("current_record was null");
-                  stop = true;
+                    qi++;
+                    if(qi >= q.size()) {
+                      stop = true;
+                    }
                 }
-                qi++;
-                if(qi >= q.size()) {
-                  stop = true;
+                planned_route = new ArrayList<MapLocation>();
+                planned_route_index = 0;
+                if(target_map_location != null) {
+                  int infLoopPreventer = 1000;
+                  MapLocation curr = target_map_location;
+                  while((curr.x != rc.getLocation().x || curr.y != rc.getLocation().y) && infLoopPreventer > 0) {
+                    planned_route.add(curr);
+                    curr = prev.get(curr.toString());
+                    if(curr == null) {
+                      System.out.println("curr is null");
+                      break;
+                    }
+                    infLoopPreventer--;
+                  }
+                  Collections.reverse(planned_route);
                 }
-            }
-            planned_route = new ArrayList<MapLocation>();
-            if(target_map_location != null) {
-              int infLoopPreventer = 1000;
-              MapLocation curr = target_map_location;
-              while((curr.x != rc.getLocation().x || curr.y != rc.getLocation().y) && infLoopPreventer > 0) {
-                planned_route.add(curr);
-                curr = prev.get(curr.toString());
-                if(curr == null) {
-                  System.out.println("curr is null");
-                  break;
-                }
-                infLoopPreventer--;
-              }
-              Collections.reverse(planned_route);
-            }
-            System.out.println("Planned a route.  Bytecodes left:" + String.valueOf(Clock.getBytecodesLeft()) + " Target location:" + target_map_location.toString());
+                System.out.println("Planned a route.  Bytecodes left:" + String.valueOf(Clock.getBytecodesLeft()) + " Target location:" + target_map_location.toString());
 
-            if(planned_route.size() > 0 && !rc.senseFlooding(planned_route.get(0)) && tryMove(rc.getLocation().directionTo(planned_route.get(0)))) {
-              System.out.println("I smartmoved");
+                tryPlannedRouteMove();
             }
         } catch (Exception e) {
             System.out.println(rc.getType() + " Exception");
@@ -226,7 +250,7 @@ public strictfp class RobotPlayer {
                 System.out.println("I mined soup! " + rc.getSoupCarrying());
         for (Direction dir : directions)
             tryBuild(randomSpawnedByMiner(), randomDirection());
-        smartMove();
+        explore();
     }
 
     static void runRefinery() throws GameActionException {
