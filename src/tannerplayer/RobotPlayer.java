@@ -247,24 +247,28 @@ public strictfp class RobotPlayer {
 
     static void runMiner() throws GameActionException {
         updateWhereIveBeenRecords();
+        if(roundNumCreated <= 2) {
+            if(max_difference(locOfHQ, rc.getLocation()) >= 3) {
+                // only one miner should build so that we can control what is built
+                RobotType type_to_build = null;
+                if(numBuildingsBuilt < minerBuildSequence.length) {
+                    type_to_build = minerBuildSequence[numBuildingsBuilt];
+                } else {
+                    type_to_build = randomSpawnedByMiner();
+                }
+                if(tryBuild(type_to_build, randomDirection())) {
+                    numBuildingsBuilt++;
+                }
+            } else if(rc.getRoundNum() > 100) {
+                tryGoSomewhere();
+            }
+        }
         for (Direction dir : directions)
             if (tryMine(dir))
                 System.out.println("I mined soup! " + rc.getSoupCarrying());
         for (Direction dir : directions)
             if (tryRefine(dir))
                 System.out.println("I refined soup! " + rc.getTeamSoup());
-        if(roundNumCreated <= 2 && max_difference(locOfHQ, rc.getLocation()) >= 3) {
-            // only one miner should build so that we can control what is built
-            RobotType type_to_build = null;
-            if(numBuildingsBuilt < minerBuildSequence.length) {
-                type_to_build = minerBuildSequence[numBuildingsBuilt];
-            } else {
-                type_to_build = randomSpawnedByMiner();
-            }
-            if(tryBuild(type_to_build, randomDirection())) {
-                numBuildingsBuilt++;
-            }
-        }
 
         boolean has_moved_toward_soup = false;
         if(rc.getSoupCarrying() < RobotType.MINER.soupLimit) {
