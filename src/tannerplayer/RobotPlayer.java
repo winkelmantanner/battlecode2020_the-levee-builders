@@ -20,6 +20,7 @@ import java.util.*;
 // ./gradlew run
 // from the same terminal.
 // ./gradlew run opens the game in the client app automatically.
+// `./gradlew -q tasks` list gradlew commands
 
 // I tried setting JAVA_HOME in .MacOSX/environment.plist and it didn't fix it.
 // I had to create .MacOSX and environment.plist, so I deleted them after I saw that it didn't work.
@@ -98,8 +99,6 @@ public strictfp class RobotPlayer {
     static Direction bug_dir = null;
     static int bug_dist = -1; // -1 iff bug_dir == null
     static MapLocation bug_loc = null; // used to tell if we moved since bugPathingStep was last called
-    static final int UNOBSTRUCTION_REQUIREMENT = 2;
-    static int num_moves_unobstructed = UNOBSTRUCTION_REQUIREMENT;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -183,10 +182,13 @@ public strictfp class RobotPlayer {
             }
             if(current_dir == null) {
                 current_dir = randomDirection();
-                if(!safeTryMove(current_dir)) {
-                    current_dir = null;
-                    // and just don't move
-                }
+                int infLoopPreventer = 10;
+                do {
+                    if(!safeTryMove(current_dir)) {
+                        current_dir = null;
+                    }
+                    infLoopPreventer--;
+                } while(current_dir == null && infLoopPreventer > 0);
             }
         }
     }
@@ -464,13 +466,11 @@ public strictfp class RobotPlayer {
     static boolean bugTryMoveToward(MapLocation dest) throws GameActionException {
         Direction target_dir = rc.getLocation().directionTo(dest);
         if(safeTryMove(target_dir)) {
-            num_moves_unobstructed++;
             return true;
         } else {
             bug_rot_dir = Math.random() < 0.5 ? RotationDirection.RIGHT : RotationDirection.LEFT;
             bug_dir = target_dir;
             bug_dist = max_difference(rc.getLocation(), dest);
-            num_moves_unobstructed = 0;
             return false;
         }
     }
@@ -493,16 +493,10 @@ public strictfp class RobotPlayer {
                     local_dir = RotDirFuncs.getRotated(local_dir, bug_rot_dir);
                 } while(canSafeMove(local_dir) && !local_dir.equals(bug_dir));
                 if(local_dir.equals(bug_dir)) {
-                    num_moves_unobstructed++;
-
-                    // don't get stuck on elevation walls
-                    MapLocation last_loc = rc.getLocation().add(bug_dir.opposite());
-                    MapLocation last_obstructed_tile = last_loc.add(RotDirFuncs.getRotated(bug_dir, bug_rot_dir));
-                    Direction dir_to_last_obstructed_tile = rc.getLocation().directionTo(last_obstructed_tile);
-                    if(num_moves_unobstructed < UNOBSTRUCTION_REQUIREMENT
-                      && canSafeMove(rc.getLocation().directionTo(last_obstructed_tile))
-                    ) {
-                        tryMove(dir_to_last_obstructed_tile);
+                    if(rc.getLocation().directionTo(locOfHQ) == bug_dir.opposite()) {
+                        tryGoSomewhere();
+                        bug_dir = null;
+                        bug_rot_dir = RotationDirection.NULL;
                     } else {
                         // it moved
                         bug_dir = null;
@@ -512,7 +506,6 @@ public strictfp class RobotPlayer {
                         bugTryMoveToward(dest);
                     }
                 } else {
-                    num_moves_unobstructed = 0;
                     bug_dir = local_dir;
                     do {
                         bug_dir = RotDirFuncs.getRotated(bug_dir, RotDirFuncs.getOpposite(bug_rot_dir));
