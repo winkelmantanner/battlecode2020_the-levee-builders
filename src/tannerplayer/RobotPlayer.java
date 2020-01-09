@@ -156,6 +156,18 @@ public strictfp class RobotPlayer {
       return ml.x >= 0 && ml.y >= 0 && ml.x < rc.getMapWidth() && ml.y < rc.getMapHeight();
     }
 
+    static boolean shootOpponentDroneIfPossible() throws GameActionException {
+        // only call on net gun and HQ
+        for(RobotInfo rbt : rc.senseNearbyRobots()) {
+            if(rbt.getType() == RobotType.DELIVERY_DRONE && rbt.getTeam() == rc.getTeam().opponent() && rc.canShootUnit(rbt.ID)) {
+                rc.shootUnit(rbt.ID);
+                System.out.println("I shot");
+                return true;
+            }
+        }
+        return false;
+    }
+
     static void runHQ() throws GameActionException {
         tryBlockchain();
         if(num_miners_built < NUM_MINERS_TO_BUILD && rc.getRoundNum() > 2 * num_miners_built) {
@@ -164,6 +176,7 @@ public strictfp class RobotPlayer {
                     num_miners_built++;
                 }
         }
+        shootOpponentDroneIfPossible();
     }
 
     static int max_difference(MapLocation ml1, MapLocation ml2) {
@@ -369,7 +382,7 @@ public strictfp class RobotPlayer {
             // See if there are any enemy robots within striking range (distance 1 from lumberjack's radius)
             RobotInfo[] robots = rc.senseNearbyRobots(GameConstants.DELIVERY_DRONE_PICKUP_RADIUS_SQUARED, enemy);
 
-            if (robots.length > 0) {
+            if (robots.length > 0 && rc.canPickUpUnit(robots[0].getID())) {
                 // Pick up a first robot within range
                 rc.pickUpUnit(robots[0].getID());
                 System.out.println("I picked up " + robots[0].getID() + "!");
@@ -381,7 +394,7 @@ public strictfp class RobotPlayer {
     }
 
     static void runNetGun() throws GameActionException {
-
+        shootOpponentDroneIfPossible();
     }
 
     /**
