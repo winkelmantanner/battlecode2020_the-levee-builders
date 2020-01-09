@@ -30,11 +30,39 @@ import java.util.*;
 // open client/Battlecode\ Client.app/
 
 
+enum RotationDirection {
+    NULL,
+    LEFT,
+    RIGHT;
+}
+class RotDirFuncs {
+    static RotationDirection getOpposite(final RotationDirection d) {
+        switch(d) {
+            case LEFT:
+                return RotationDirection.RIGHT;
+            case RIGHT:
+                return RotationDirection.LEFT;
+            default:
+                return RotationDirection.NULL;
+        }
+    }
+    static Direction rotate(final Direction dir, final RotationDirection rd) {
+        switch(rd) {
+            case LEFT:
+                return dir.rotateLeft();
+            case RIGHT:
+                return dir.rotateRight();
+            default:
+                return dir;
+        }
+    }
+}
+
 
 public strictfp class RobotPlayer {
     static RobotController rc;
 
-    static Direction[] directions = {Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST};
+    static Direction[] directions = {Direction.NORTH, Direction.NORTHEAST, Direction.EAST, Direction.SOUTHEAST, Direction.SOUTH, Direction.SOUTHWEST, Direction.WEST, Direction.NORTHWEST};
     static RobotType[] spawnedByMiner = {RobotType.REFINERY, RobotType.VAPORATOR, RobotType.DESIGN_SCHOOL,
             RobotType.FULFILLMENT_CENTER, RobotType.NET_GUN};
 
@@ -46,7 +74,7 @@ public strictfp class RobotPlayer {
 
     static final int MAX_ELEVATION_STEP = GameConstants.MAX_DIRT_DIFFERENCE; // I didn't see this in GameConstants until I'd already made this
 
-    static final int NUM_MINERS_TO_BUILD = 3; // used by HQ
+    static final int NUM_MINERS_TO_BUILD = 1; // used by HQ
     static int num_miners_built = 0; // used by HQ
 
     static int num_landscapers_built = 0; // design school
@@ -57,6 +85,10 @@ public strictfp class RobotPlayer {
     static ArrayList<MapLocation> where_ive_been = new ArrayList<MapLocation>();
     static int where_ive_been_obstruction_index_if_known = -1; // The miners current wander around randomly hoping to find the HQ or a location in where_ive_been_map if where_ive_been was obstructed
     static Direction current_dir = null;
+
+    static RotationDirection bug_rot_dir = RotationDirection.NULL;
+    static Direction bug_dir = null;
+    static int bug_dist = -1;
 
 
 
@@ -305,18 +337,23 @@ public strictfp class RobotPlayer {
                     MapLocation l = rc.getLocation().add(dir);
                     if(max_difference(l, locOfHQ) == 1) {
                         int min_elev = 12345;
+                        MapLocation min_elev_loc = null;
                         for(int dx = -1; dx <= 1; dx++) {
                             for(int dy = -1; dy <= 1; dy++) {
-                                if((dx != 0 || dy != 0) && rc.canSenseLocation(locOfHQ.translate(dx, dy))) {
-                                    int elev = rc.senseElevation(locOfHQ.translate(dx, dy));
+                                MapLocation ml = locOfHQ.translate(dx, dy);
+                                if((dx != 0 || dy != 0) && rc.canSenseLocation(ml)) {
+                                    int elev = rc.senseElevation(ml);
                                     if(elev < min_elev) {
                                         min_elev = elev;
+                                        min_elev_loc = ml;
                                     }
                                 }
                             }
                         }
                         if(rc.canSenseLocation(l) && rc.senseElevation(l) < min_elev + MAX_ELEVATION_STEP) {
-                          tryDeposit(dir);
+                            tryDeposit(dir);
+                        } else if(rc.getDirtCarrying() > 0) {
+                            bugPathingStep(min_elev_loc);
                         }
                     }
                 }
@@ -365,6 +402,11 @@ public strictfp class RobotPlayer {
      */
     static RobotType randomSpawnedByMiner() {
         return spawnedByMiner[(int) (Math.random() * spawnedByMiner.length)];
+    }
+
+    static boolean canSafeMove(Direction dir) throws GameActionException {
+        MapLocation loc = rc.getLocation().add(dir);
+        return rc.canMove(dir) && (!rc.canSenseLocation(loc) || !rc.senseFlooding(loc));
     }
 
     static boolean safeTryMove(Direction dir) throws GameActionException {
@@ -421,6 +463,55 @@ public strictfp class RobotPlayer {
             rc.buildRobot(type, dir);
             return true;
         } else return false;
+    }
+
+    static boolean bugTryMoveToward(MapLocation dest) throws GameActionException {
+        Direction target_dir = rc.getLocation().directionTo(dest);
+        if(!safeTryMove(target_dir)) {
+            bug_rot_dir = Math.random() < 0.5 ? RotationDirection.RIGHT : RotationDirection.LEFT;
+            bug_dir = target_dir;
+            bug_dist = max_difference(rc.getLocation(), dest);
+            return false;
+        }
+        return true;
+    }
+    static boolean bugPathingStep(MapLocation dest) throws GameActionException {
+        boolean did_move = false;
+        if(rc.isReady()) {
+            if(bug_dir == null) {
+                // This function modifies the static variables
+                bugTryMoveToward(dest);
+            }
+            if(bug_dir != null) {
+                Direction local_dir = bug_dir;
+                do {
+                    local_dir = RotDirFuncs.rotate(local_dir, bug_rot_dir);
+                } while(canSafeMove(local_dir) && !local_dir.equals(bug_dir));
+                if(local_dir.equals(bug_dir)) {
+                    // it moved
+                    bug_dir = null;
+                    bug_rot_dir = RotationDirection.NULL;
+
+                    // This function modifies the static variables
+                    bugTryMoveToward(dest);
+                } else {
+                    bug_dir = local_dir;
+                    do {
+                        bug_dir = RotDirFuncs.rotate(bug_dir, RotDirFuncs.getOpposite(bug_rot_dir));
+                    } while(!canSafeMove(bug_dir) && !bug_dir.equals(local_dir));
+                    if(!bug_dir.equals(local_dir)) {
+                        rc.move(bug_dir);
+                        did_move = true;
+                        if(max_difference(dest, rc.getLocation()) < bug_dist) {
+                            bug_dir = null;
+                            bug_dist = -1;
+                            bug_rot_dir = RotationDirection.NULL;
+                        }
+                    }
+                }
+            }
+        }
+        return did_move;
     }
 
     static boolean tryNonobstructiveDig(Direction dir) throws GameActionException {
