@@ -248,7 +248,9 @@ public strictfp class RobotPlayer {
     static void runMiner() throws GameActionException {
         updateWhereIveBeenRecords();
         if(roundNumCreated <= 2) {
-            if(max_difference(locOfHQ, rc.getLocation()) >= 3) {
+            Direction build_dir = randomDirection();
+            MapLocation build_loc = rc.getLocation().add(build_dir);
+            if(max_difference(locOfHQ, build_loc) >= 3) {
                 // only one miner should build so that we can control what is built
                 RobotType type_to_build = null;
                 if(numBuildingsBuilt < minerBuildSequence.length) {
@@ -256,7 +258,7 @@ public strictfp class RobotPlayer {
                 } else {
                     type_to_build = randomSpawnedByMiner();
                 }
-                if(tryBuild(type_to_build, randomDirection())) {
+                if(tryBuild(type_to_build, build_dir)) {
                     numBuildingsBuilt++;
                 }
             } else if(rc.getRoundNum() > 100) {
@@ -264,11 +266,9 @@ public strictfp class RobotPlayer {
             }
         }
         for (Direction dir : directions)
-            if (tryMine(dir))
-                System.out.println("I mined soup! " + rc.getSoupCarrying());
+            tryMine(dir);
         for (Direction dir : directions)
-            if (tryRefine(dir))
-                System.out.println("I refined soup! " + rc.getTeamSoup());
+            tryRefine(dir);
 
         boolean has_moved_toward_soup = false;
         if(rc.getSoupCarrying() < RobotType.MINER.soupLimit) {
@@ -307,31 +307,50 @@ public strictfp class RobotPlayer {
         if(locOfHQ != null) {
             if(max_difference(locOfHQ, rc.getLocation()) >= 7) {
                 for(Direction dir : directions) {
-                    trySafeNonobstructiveDig(dir);
+                    if(trySafeNonobstructiveDig(dir)) {
+                        System.out.println("I dug dirt " + rc.getLocation().add(dir).toString());
+                    }
                 }
             } else {
+                boolean can_deposit_adj_to_hq = false;
                 for(Direction dir : directions) {
                     MapLocation l = rc.getLocation().add(dir);
                     if(max_difference(l, locOfHQ) == 1) {
-                        int min_elev = 12345;
-                        MapLocation min_elev_loc = null;
-                        for(int dx = -1; dx <= 1; dx++) {
-                            for(int dy = -1; dy <= 1; dy++) {
-                                MapLocation ml = locOfHQ.translate(dx, dy);
-                                if((dx != 0 || dy != 0) && rc.canSenseLocation(ml)) {
-                                    int elev = rc.senseElevation(ml);
-                                    if(elev < min_elev) {
-                                        min_elev = elev;
-                                        min_elev_loc = ml;
-                                    }
+                        can_deposit_adj_to_hq = true;
+                    }
+                }
+                if(can_deposit_adj_to_hq) {
+                    int min_elev = 12345;
+                    MapLocation min_elev_loc = null;
+                    for(int dx = -1; dx <= 1; dx++) {
+                        for(int dy = -1; dy <= 1; dy++) {
+                            MapLocation ml = locOfHQ.translate(dx, dy);
+                            if((dx != 0 || dy != 0) && isValid(ml) && rc.canSenseLocation(ml)) {
+                                int elev = rc.senseElevation(ml);
+                                if(elev < min_elev) {
+                                    min_elev = elev;
+                                    min_elev_loc = ml;
                                 }
                             }
                         }
-                        if(rc.canSenseLocation(l) && rc.senseElevation(l) < min_elev + MAX_ELEVATION_STEP) {
-                            tryDeposit(dir);
-                        } else if(rc.getDirtCarrying() > 0) {
-                            bugPathingStep(min_elev_loc);
+                    }
+                    Direction dir_to_deposit = null;
+                    for(Direction dir : directions) {
+                        MapLocation l = rc.getLocation().add(dir);
+                        if(isValid(l)
+                          && max_difference(l, locOfHQ) == 1
+                          && rc.canSenseLocation(l)
+                          && rc.senseElevation(l) < min_elev + MAX_ELEVATION_STEP
+                        ) {
+                            dir_to_deposit = dir;
                         }
+                    }
+                    if(dir_to_deposit != null && 
+                      tryDeposit(dir_to_deposit)
+                    ) {
+                        System.out.println("I deposited dirt " + rc.getLocation().add(dir_to_deposit).toString());
+                    } else if(rc.getDirtCarrying() > 0) {
+                        bugPathingStep(min_elev_loc);
                     }
                 }
             }
