@@ -92,9 +92,6 @@ public strictfp class RobotPlayer {
 
     static MapLocation locOfHQ = null;
 
-    // static HashMap<String, ObservationRecord> where_ive_been_map = new HashMap<String, ObservationRecord>();
-    // static ArrayList<MapLocation> where_ive_been = new ArrayList<MapLocation>();
-    // static int where_ive_been_obstruction_index_if_known = -1; // The miners current wander around randomly hoping to find the HQ or a location in where_ive_been_map if where_ive_been was obstructed
     static Direction current_dir = null;
 
     static RotationDirection bug_rot_dir = RotationDirection.NULL; // NULL iff bug_dir == null
@@ -244,58 +241,17 @@ public strictfp class RobotPlayer {
                         locOfHQ = l;
                     }
                 }
-            } else if(l.equals(locOfHQ)) {
-                // where_ive_been.clear();
-                // where_ive_been_map.clear();
-                // where_ive_been_obstruction_index_if_known = -1;
             }
         }
-        // if(where_ive_been.size() == 0 || rc.getLocation() != where_ive_been.get(where_ive_been.size() - 1)) {
-        //     where_ive_been.add(rc.getLocation());
-        // }
-        // String location_string = rc.getLocation().toString();
-        // ObservationRecord prev_rec_if_any = where_ive_been_map.get(location_string);
-        // if(null == prev_rec_if_any) {
-        //     where_ive_been_map.put(location_string, new ObservationRecord(rc, rc.getLocation(), where_ive_been.size() - 1));
-        // } else if(prev_rec_if_any.where_ive_been_index < where_ive_been.size() - 1) {
-        //     for(
-        //       int index = where_ive_been.size() - 1;
-        //       index > prev_rec_if_any.where_ive_been_index;
-        //       index--
-        //     ) {
-        //         where_ive_been_map.remove(where_ive_been.get(index).toString()); // does not throw if the key is not in the map
-        //         where_ive_been.remove(index);
-        //     }
-        //     if(prev_rec_if_any.where_ive_been_index <= where_ive_been_obstruction_index_if_known) {
-        //         where_ive_been_obstruction_index_if_known = -1;
-        //     }
-        //     where_ive_been_map.put(location_string, new ObservationRecord(rc, rc.getLocation(), where_ive_been.size() - 1));
-        // }
     }
 
-    static boolean goBackAlongWhereIveBeen() throws GameActionException {
-        // this function actually removes the last entry from where_ive_been
-        if(Math.random() < 0.1) {
+    static boolean goToHQ() throws GameActionException {
+        if(Math.random() < 0.1 || locOfHQ == null) {
             tryGoSomewhere();
             return true;
         } else {
             return bugPathingStep(locOfHQ);
         }
-        // if(where_ive_been_obstruction_index_if_known < 0 && rc.isReady()) {
-        //     int last_index_im_not_at = where_ive_been.size() - 1;
-        //     while(last_index_im_not_at >= 0 && rc.getLocation().equals(where_ive_been.get(last_index_im_not_at))) {
-        //         last_index_im_not_at--;
-        //     }
-        //     if(last_index_im_not_at >= 0 && safeTryMove(rc.getLocation().directionTo(where_ive_been.get(last_index_im_not_at)))) {
-        //         for(int i = where_ive_been.size() - 1; i >= last_index_im_not_at; i--) {
-        //             where_ive_been.remove(i);
-        //         }
-        //         return true;
-        //     } else {
-        //       where_ive_been_obstruction_index_if_known = last_index_im_not_at;
-        //     }
-        // }
-        // return false;
     }
 
     static void runMiner() throws GameActionException {
@@ -324,7 +280,7 @@ public strictfp class RobotPlayer {
             has_moved_toward_soup = tryGoTowardSoup();
         }
         if(!has_moved_toward_soup && rc.getSoupCarrying() > 0) {
-            goBackAlongWhereIveBeen();
+            goToHQ();
         }
         tryGoSomewhere();
     }
@@ -385,7 +341,7 @@ public strictfp class RobotPlayer {
                 }
             }
             if(rc.getDirtCarrying() >= RobotType.LANDSCAPER.dirtLimit) {
-                goBackAlongWhereIveBeen();
+                goToHQ();
             }
         }
         tryGoSomewhere();
@@ -502,6 +458,7 @@ public strictfp class RobotPlayer {
         return true;
     }
     static boolean bugPathingStep(MapLocation dest) throws GameActionException {
+        // dest must not be null
         boolean did_move = false;
         if(rc.getLocation() != bug_loc) {
             bug_dir = null;
