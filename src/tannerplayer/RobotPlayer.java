@@ -302,8 +302,22 @@ public strictfp class RobotPlayer {
                 }
             } else {
                 for(Direction dir : directions) {
-                    if(max_difference(rc.getLocation().add(dir), locOfHQ) == 1) {
-                        tryDeposit(dir);
+                    MapLocation l = rc.getLocation().add(dir);
+                    if(max_difference(l, locOfHQ) == 1) {
+                        int min_elev = 12345;
+                        for(int dx = -1; dx <= 1; dx++) {
+                            for(int dy = -1; dy <= 1; dy++) {
+                                if((dx != 0 || dy != 0) && rc.canSenseLocation(locOfHQ.translate(dx, dy))) {
+                                    int elev = rc.senseElevation(locOfHQ.translate(dx, dy));
+                                    if(elev < min_elev) {
+                                        min_elev = elev;
+                                    }
+                                }
+                            }
+                        }
+                        if(rc.canSenseLocation(l) && rc.senseElevation(l) < min_elev + MAX_ELEVATION_STEP) {
+                          tryDeposit(dir);
+                        }
                     }
                 }
             }
