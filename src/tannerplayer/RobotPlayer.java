@@ -65,6 +65,17 @@ public strictfp class RobotPlayer {
     static Direction[] directions = {Direction.NORTH, Direction.NORTHEAST, Direction.EAST, Direction.SOUTHEAST, Direction.SOUTH, Direction.SOUTHWEST, Direction.WEST, Direction.NORTHWEST};
     static RobotType[] spawnedByMiner = {RobotType.REFINERY, RobotType.VAPORATOR, RobotType.DESIGN_SCHOOL,
             RobotType.FULFILLMENT_CENTER, RobotType.NET_GUN};
+    
+    static RobotType[] minerBuildSequence = {
+        RobotType.DESIGN_SCHOOL,
+        RobotType.FULFILLMENT_CENTER,
+        RobotType.DESIGN_SCHOOL,
+        RobotType.REFINERY,
+        RobotType.VAPORATOR,
+        RobotType.NET_GUN,
+        RobotType.DESIGN_SCHOOL
+    };
+    static int numBuildingsBuilt = 0;
 
     static int turnCount;
     static int roundNumCreated = -1;
@@ -86,9 +97,10 @@ public strictfp class RobotPlayer {
     static int where_ive_been_obstruction_index_if_known = -1; // The miners current wander around randomly hoping to find the HQ or a location in where_ive_been_map if where_ive_been was obstructed
     static Direction current_dir = null;
 
-    static RotationDirection bug_rot_dir = RotationDirection.NULL;
+    static RotationDirection bug_rot_dir = RotationDirection.NULL; // NULL iff bug_dir == null
     static Direction bug_dir = null;
-    static int bug_dist = -1;
+    static int bug_dist = -1; // -1 iff bug_dir == null
+    static MapLocation bug_loc = null; // used to tell if we moved since bugPathingStep was last called
 
 
 
@@ -290,7 +302,15 @@ public strictfp class RobotPlayer {
                 System.out.println("I refined soup! " + rc.getTeamSoup());
         if(roundNumCreated <= 2) {
             // only one miner should build so that we can control what is built
-            tryBuild(randomSpawnedByMiner(), randomDirection());
+            RobotType type_to_build = null;
+            if(numBuildingsBuilt < minerBuildSequence.length) {
+                type_to_build = minerBuildSequence[numBuildingsBuilt];
+            } else {
+                type_to_build = randomSpawnedByMiner();
+            }
+            if(tryBuild(type_to_build, randomDirection())) {
+                numBuildingsBuilt++;
+            }
         }
 
         boolean has_moved_toward_soup = false;
@@ -477,6 +497,11 @@ public strictfp class RobotPlayer {
     }
     static boolean bugPathingStep(MapLocation dest) throws GameActionException {
         boolean did_move = false;
+        if(rc.getLocation() != bug_loc) {
+            bug_dir = null;
+            bug_dist = -1;
+            bug_rot_dir = RotationDirection.NULL;
+        }
         if(rc.isReady()) {
             if(bug_dir == null) {
                 // This function modifies the static variables
@@ -511,6 +536,7 @@ public strictfp class RobotPlayer {
                 }
             }
         }
+        bug_loc = rc.getLocation();
         return did_move;
     }
 
