@@ -85,16 +85,16 @@ public strictfp class RobotPlayer {
 
     static final int MAX_ELEVATION_STEP = GameConstants.MAX_DIRT_DIFFERENCE; // I didn't see this in GameConstants until I'd already made this
 
-    static final int NUM_MINERS_TO_BUILD = 1; // used by HQ
+    static final int NUM_MINERS_TO_BUILD = 4; // used by HQ
     static int num_miners_built = 0; // used by HQ
 
     static int num_landscapers_built = 0; // design school
 
     static MapLocation locOfHQ = null;
 
-    static HashMap<String, ObservationRecord> where_ive_been_map = new HashMap<String, ObservationRecord>();
-    static ArrayList<MapLocation> where_ive_been = new ArrayList<MapLocation>();
-    static int where_ive_been_obstruction_index_if_known = -1; // The miners current wander around randomly hoping to find the HQ or a location in where_ive_been_map if where_ive_been was obstructed
+    // static HashMap<String, ObservationRecord> where_ive_been_map = new HashMap<String, ObservationRecord>();
+    // static ArrayList<MapLocation> where_ive_been = new ArrayList<MapLocation>();
+    // static int where_ive_been_obstruction_index_if_known = -1; // The miners current wander around randomly hoping to find the HQ or a location in where_ive_been_map if where_ive_been was obstructed
     static Direction current_dir = null;
 
     static RotationDirection bug_rot_dir = RotationDirection.NULL; // NULL iff bug_dir == null
@@ -245,51 +245,57 @@ public strictfp class RobotPlayer {
                     }
                 }
             } else if(l.equals(locOfHQ)) {
-                where_ive_been.clear();
-                where_ive_been_map.clear();
-                where_ive_been_obstruction_index_if_known = -1;
+                // where_ive_been.clear();
+                // where_ive_been_map.clear();
+                // where_ive_been_obstruction_index_if_known = -1;
             }
         }
-        if(where_ive_been.size() == 0 || rc.getLocation() != where_ive_been.get(where_ive_been.size() - 1)) {
-            where_ive_been.add(rc.getLocation());
-        }
-        String location_string = rc.getLocation().toString();
-        ObservationRecord prev_rec_if_any = where_ive_been_map.get(location_string);
-        if(null == prev_rec_if_any) {
-            where_ive_been_map.put(location_string, new ObservationRecord(rc, rc.getLocation(), where_ive_been.size() - 1));
-        } else if(prev_rec_if_any.where_ive_been_index < where_ive_been.size() - 1) {
-            for(
-              int index = where_ive_been.size() - 1;
-              index > prev_rec_if_any.where_ive_been_index;
-              index--
-            ) {
-                where_ive_been_map.remove(where_ive_been.get(index).toString()); // does not throw if the key is not in the map
-                where_ive_been.remove(index);
-            }
-            if(prev_rec_if_any.where_ive_been_index <= where_ive_been_obstruction_index_if_known) {
-                where_ive_been_obstruction_index_if_known = -1;
-            }
-            where_ive_been_map.put(location_string, new ObservationRecord(rc, rc.getLocation(), where_ive_been.size() - 1));
-        }
+        // if(where_ive_been.size() == 0 || rc.getLocation() != where_ive_been.get(where_ive_been.size() - 1)) {
+        //     where_ive_been.add(rc.getLocation());
+        // }
+        // String location_string = rc.getLocation().toString();
+        // ObservationRecord prev_rec_if_any = where_ive_been_map.get(location_string);
+        // if(null == prev_rec_if_any) {
+        //     where_ive_been_map.put(location_string, new ObservationRecord(rc, rc.getLocation(), where_ive_been.size() - 1));
+        // } else if(prev_rec_if_any.where_ive_been_index < where_ive_been.size() - 1) {
+        //     for(
+        //       int index = where_ive_been.size() - 1;
+        //       index > prev_rec_if_any.where_ive_been_index;
+        //       index--
+        //     ) {
+        //         where_ive_been_map.remove(where_ive_been.get(index).toString()); // does not throw if the key is not in the map
+        //         where_ive_been.remove(index);
+        //     }
+        //     if(prev_rec_if_any.where_ive_been_index <= where_ive_been_obstruction_index_if_known) {
+        //         where_ive_been_obstruction_index_if_known = -1;
+        //     }
+        //     where_ive_been_map.put(location_string, new ObservationRecord(rc, rc.getLocation(), where_ive_been.size() - 1));
+        // }
     }
 
     static boolean goBackAlongWhereIveBeen() throws GameActionException {
         // this function actually removes the last entry from where_ive_been
-        if(where_ive_been_obstruction_index_if_known < 0 && rc.isReady()) {
-            int last_index_im_not_at = where_ive_been.size() - 1;
-            while(last_index_im_not_at >= 0 && rc.getLocation().equals(where_ive_been.get(last_index_im_not_at))) {
-                last_index_im_not_at--;
-            }
-            if(last_index_im_not_at >= 0 && safeTryMove(rc.getLocation().directionTo(where_ive_been.get(last_index_im_not_at)))) {
-                for(int i = where_ive_been.size() - 1; i >= last_index_im_not_at; i--) {
-                    where_ive_been.remove(i);
-                }
-                return true;
-            } else {
-              where_ive_been_obstruction_index_if_known = last_index_im_not_at;
-            }
+        if(Math.random() < 0.1) {
+            tryGoSomewhere();
+            return true;
+        } else {
+            return bugPathingStep(locOfHQ);
         }
-        return false;
+        // if(where_ive_been_obstruction_index_if_known < 0 && rc.isReady()) {
+        //     int last_index_im_not_at = where_ive_been.size() - 1;
+        //     while(last_index_im_not_at >= 0 && rc.getLocation().equals(where_ive_been.get(last_index_im_not_at))) {
+        //         last_index_im_not_at--;
+        //     }
+        //     if(last_index_im_not_at >= 0 && safeTryMove(rc.getLocation().directionTo(where_ive_been.get(last_index_im_not_at)))) {
+        //         for(int i = where_ive_been.size() - 1; i >= last_index_im_not_at; i--) {
+        //             where_ive_been.remove(i);
+        //         }
+        //         return true;
+        //     } else {
+        //       where_ive_been_obstruction_index_if_known = last_index_im_not_at;
+        //     }
+        // }
+        // return false;
     }
 
     static void runMiner() throws GameActionException {
@@ -300,7 +306,7 @@ public strictfp class RobotPlayer {
         for (Direction dir : directions)
             if (tryRefine(dir))
                 System.out.println("I refined soup! " + rc.getTeamSoup());
-        if(roundNumCreated <= 2) {
+        if(roundNumCreated <= 2 && max_difference(locOfHQ, rc.getLocation()) >= 3) {
             // only one miner should build so that we can control what is built
             RobotType type_to_build = null;
             if(numBuildingsBuilt < minerBuildSequence.length) {
@@ -350,7 +356,7 @@ public strictfp class RobotPlayer {
         if(locOfHQ != null) {
             if(max_difference(locOfHQ, rc.getLocation()) >= 7) {
                 for(Direction dir : directions) {
-                    tryNonobstructiveDig(dir);
+                    trySafeNonobstructiveDig(dir);
                 }
             } else {
                 for(Direction dir : directions) {
@@ -540,6 +546,23 @@ public strictfp class RobotPlayer {
         return did_move;
     }
 
+    static boolean trySafeNonobstructiveDig(Direction dir) throws GameActionException {
+        MapLocation target_loc = rc.getLocation().add(dir);
+        boolean is_safe = true;
+        for(Direction ndir : directions) {
+            MapLocation adj = target_loc.add(ndir);
+            if(rc.canSenseLocation(adj) && rc.senseFlooding(adj)) {
+                is_safe = false;
+                break;
+            }
+        }
+        if(is_safe) {
+            return tryNonobstructiveDig(dir);
+        } else {
+            return false;
+        }
+    }
+
     static boolean tryNonobstructiveDig(Direction dir) throws GameActionException {
         MapLocation target_loc = rc.getLocation().add(dir);
         if(rc.canDigDirt(dir) && rc.canSenseLocation(target_loc)) {
@@ -547,11 +570,9 @@ public strictfp class RobotPlayer {
             boolean is_ok_to_dig = true;
             for(Direction ndir : directions) {
                 MapLocation adj = target_loc.add(ndir);
-                if(rc.canSenseLocation(adj)
+                if(!(rc.canSenseLocation(adj)
                   && target_current_elev > rc.senseElevation(adj) - MAX_ELEVATION_STEP
-                ) {
-                    // nothing
-                } else {
+                )) {
                     is_ok_to_dig = false;
                     break;
                 }
