@@ -46,7 +46,7 @@ class RotDirFuncs {
                 return RotationDirection.NULL;
         }
     }
-    static Direction rotate(final Direction dir, final RotationDirection rd) {
+    static Direction getRotated(final Direction dir, final RotationDirection rd) {
         switch(rd) {
             case LEFT:
                 return dir.rotateLeft();
@@ -98,8 +98,8 @@ public strictfp class RobotPlayer {
     static Direction bug_dir = null;
     static int bug_dist = -1; // -1 iff bug_dir == null
     static MapLocation bug_loc = null; // used to tell if we moved since bugPathingStep was last called
-
-
+    static final int UNOBSTRUCTION_REQUIREMENT = 2;
+    static int num_moves_unobstructed = UNOBSTRUCTION_REQUIREMENT;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -463,13 +463,16 @@ public strictfp class RobotPlayer {
 
     static boolean bugTryMoveToward(MapLocation dest) throws GameActionException {
         Direction target_dir = rc.getLocation().directionTo(dest);
-        if(!safeTryMove(target_dir)) {
+        if(safeTryMove(target_dir)) {
+            num_moves_unobstructed++;
+            return true;
+        } else {
             bug_rot_dir = Math.random() < 0.5 ? RotationDirection.RIGHT : RotationDirection.LEFT;
             bug_dir = target_dir;
             bug_dist = max_difference(rc.getLocation(), dest);
+            num_moves_unobstructed = 0;
             return false;
         }
-        return true;
     }
     static boolean bugPathingStep(MapLocation dest) throws GameActionException {
         // dest must not be null
@@ -487,19 +490,32 @@ public strictfp class RobotPlayer {
             if(bug_dir != null) {
                 Direction local_dir = bug_dir;
                 do {
-                    local_dir = RotDirFuncs.rotate(local_dir, bug_rot_dir);
+                    local_dir = RotDirFuncs.getRotated(local_dir, bug_rot_dir);
                 } while(canSafeMove(local_dir) && !local_dir.equals(bug_dir));
                 if(local_dir.equals(bug_dir)) {
-                    // it moved
-                    bug_dir = null;
-                    bug_rot_dir = RotationDirection.NULL;
+                    num_moves_unobstructed++;
 
-                    // This function modifies the static variables
-                    bugTryMoveToward(dest);
+                    // don't get stuck on elevation walls
+                    MapLocation last_loc = rc.getLocation().add(bug_dir.opposite());
+                    MapLocation last_obstructed_tile = last_loc.add(RotDirFuncs.getRotated(bug_dir, bug_rot_dir));
+                    Direction dir_to_last_obstructed_tile = rc.getLocation().directionTo(last_obstructed_tile);
+                    if(num_moves_unobstructed < UNOBSTRUCTION_REQUIREMENT
+                      && canSafeMove(rc.getLocation().directionTo(last_obstructed_tile))
+                    ) {
+                        tryMove(dir_to_last_obstructed_tile);
+                    } else {
+                        // it moved
+                        bug_dir = null;
+                        bug_rot_dir = RotationDirection.NULL;
+
+                        // This function modifies the static variables
+                        bugTryMoveToward(dest);
+                    }
                 } else {
+                    num_moves_unobstructed = 0;
                     bug_dir = local_dir;
                     do {
-                        bug_dir = RotDirFuncs.rotate(bug_dir, RotDirFuncs.getOpposite(bug_rot_dir));
+                        bug_dir = RotDirFuncs.getRotated(bug_dir, RotDirFuncs.getOpposite(bug_rot_dir));
                     } while(!canSafeMove(bug_dir) && !bug_dir.equals(local_dir));
                     if(!bug_dir.equals(local_dir)) {
                         rc.move(bug_dir);
