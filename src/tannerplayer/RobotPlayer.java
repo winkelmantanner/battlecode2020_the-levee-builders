@@ -227,19 +227,10 @@ public strictfp class RobotPlayer {
 
     static void updateWhereIveBeenRecords() throws GameActionException {
         // To be called for moving units at the beginning of each turn
-        for(Direction dir : directions) {
-            MapLocation l = rc.getLocation().add(dir);
-            if(locOfHQ == null) {
-                // for(RobotInfo rbt : rc.senseNearbyRobots()) {
-                //     if(rbt.getType() == RobotType.HQ && rbt.team == rc.getTeam()) {
-                //         locOfHQ = rbt.location;
-                //     }
-                // }
-                if(isValid(l) && rc.canSenseLocation(l)) {
-                    RobotInfo rbt_at_l_or_null = rc.senseRobotAtLocation(l);
-                    if(rbt_at_l_or_null != null && rbt_at_l_or_null.type == RobotType.HQ && rbt_at_l_or_null.team == rc.getTeam()) {
-                        locOfHQ = l;
-                    }
+        if(locOfHQ == null) {
+            for(RobotInfo rbt : rc.senseNearbyRobots()) {
+                if(rbt.getType() == RobotType.HQ && rbt.team == rc.getTeam()) {
+                    locOfHQ = rbt.location;
                 }
             }
         }
