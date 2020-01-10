@@ -67,16 +67,18 @@ public strictfp class RobotPlayer {
     static RobotType[] spawnedByMiner = {RobotType.REFINERY, RobotType.VAPORATOR, RobotType.DESIGN_SCHOOL,
             RobotType.FULFILLMENT_CENTER, RobotType.NET_GUN};
     
+    // miner
+    // only one miner builds the build sequence
     static RobotType[] minerBuildSequence = {
         RobotType.DESIGN_SCHOOL,
         RobotType.FULFILLMENT_CENTER,
         RobotType.DESIGN_SCHOOL,
-        RobotType.REFINERY,
         RobotType.VAPORATOR,
         RobotType.NET_GUN,
         RobotType.DESIGN_SCHOOL
     };
     static int numBuildingsBuilt = 0;
+    static boolean hasBuiltRefinery = false;
 
     static int turnCount;
     static int roundNumCreated = -1;
@@ -290,6 +292,27 @@ public strictfp class RobotPlayer {
         boolean has_moved_toward_soup = false;
         if(rc.getSoupCarrying() < RobotType.MINER.soupLimit) {
             has_moved_toward_soup = tryGoTowardSoup();
+        } else if(!hasBuiltRefinery) {
+            boolean there_is_already_a_refinery = false;
+            for(Direction d : directions) {
+                MapLocation ml = rc.getLocation().add(d);
+                if(isValid(ml)
+                  && rc.canSenseLocation(ml)
+                  && RobotType.REFINERY.cost < rc.senseSoup(ml)
+                  && !there_is_already_a_refinery
+                ) {
+                    for(RobotInfo rbt : rc.senseNearbyRobots()) {
+                        if(rbt.team == rc.getTeam()
+                          && (rbt.type == RobotType.REFINERY || rbt.type == RobotType.HQ)
+                        ) {
+                            there_is_already_a_refinery = true;
+                        }
+                    }
+                    if(!there_is_already_a_refinery) {
+                        hasBuiltRefinery = tryBuild(RobotType.REFINERY, d);
+                    }
+                }
+            }
         }
         if(!has_moved_toward_soup && rc.getSoupCarrying() > 0) {
             goToHQ();
