@@ -451,6 +451,23 @@ public strictfp class RobotPlayer {
                     }
                 }
             }
+
+            if(!rc.isCurrentlyHoldingUnit()) {
+                for(RobotInfo rbt : rc.senseNearbyRobots(
+                    rc.getLocation(),
+                    rc.getType().sensorRadiusSquared,
+                    rc.getTeam().opponent()
+                )) {
+                    if(rbt.team != rc.getTeam()
+                      && rbt.type.canBePickedUp()
+                    ) {
+                        if(Math.random() < 0.95) {
+                            bugPathingStep(rbt.location);
+                        }
+                    }
+                }
+            }
+
             if(locOfHQ == null
               || rc.isCurrentlyHoldingUnit()
               || Math.random() < 0.25
