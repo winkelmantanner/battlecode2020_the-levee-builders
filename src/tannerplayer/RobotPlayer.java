@@ -334,10 +334,7 @@ public strictfp class RobotPlayer {
     static void runDesignSchool() throws GameActionException {
       for (Direction dir : directions) {
         if(rc.canBuildRobot(RobotType.LANDSCAPER, dir)
-          && num_landscapers_built <
-          0.0002
-          * rc.getTeamSoup()
-          * rc.getRoundNum()
+          && num_landscapers_built < 8
         ) {
           rc.buildRobot(RobotType.LANDSCAPER, dir);
           num_landscapers_built++;
