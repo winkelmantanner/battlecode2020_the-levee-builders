@@ -401,19 +401,8 @@ public strictfp class RobotPlayer {
 
     static void runDeliveryDrone() throws GameActionException {
         Team enemy = rc.getTeam().opponent();
-        if (!rc.isCurrentlyHoldingUnit()) {
-            // See if there are any enemy robots within striking range (distance 1 from lumberjack's radius)
-            RobotInfo[] robots = rc.senseNearbyRobots(GameConstants.DELIVERY_DRONE_PICKUP_RADIUS_SQUARED, enemy);
-
-            if (robots.length > 0 && rc.canPickUpUnit(robots[0].getID())) {
-                // Pick up a first robot within range
-                rc.pickUpUnit(robots[0].getID());
-                System.out.println("I picked up " + robots[0].getID() + "!");
-            }
-        } else {
-            // No close robots, so search for robots within sight radius
-            tryMove(randomDirection());
-        }
+        // bugPathingStep(new MapLocation(5,26));
+        tryGoSomewhere();
     }
 
     static void runNetGun() throws GameActionException {
@@ -439,52 +428,45 @@ public strictfp class RobotPlayer {
     }
 
     static boolean canSafeMove(Direction dir) throws GameActionException {
+        // This func works for all unit types
+        // Do not call if you are a building
+        // VERY HIGH COMPLEXITY for drones
+        if(dir == null) {
+            return false;
+        }
         MapLocation loc = rc.getLocation().add(dir);
-        return rc.canMove(dir) && (!rc.canSenseLocation(loc) || !rc.senseFlooding(loc));
+        if(!isValid(loc)) {
+            return false;
+        }
+        switch(rc.getType()) {
+            case DELIVERY_DRONE:
+                for(RobotInfo rbt : rc.senseNearbyRobots()) {
+                    if(rbt.team == rc.getTeam().opponent()
+                      && rbt.type.canShoot()
+                      && loc.isWithinDistanceSquared(
+                          rbt.location,
+                          GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED
+                    )) {
+                       return false;
+                    }
+                }
+                return rc.canMove(dir);
+            default:
+                return rc.canMove(dir) && (!rc.canSenseLocation(loc) || !rc.senseFlooding(loc));
+        }
     }
 
     static boolean safeTryMove(Direction dir) throws GameActionException {
-        if(dir != null) {
-            MapLocation landing_space = rc.getLocation().add(dir);
-            if ( rc.canSenseLocation(landing_space)
-              && !rc.senseFlooding(landing_space)
-            ) {
-                return tryMove(dir);
-            }
+        // This func works for all unit types
+        // Do not call if you are a building
+        // VERY HIGH COMPLEXITY for drones
+        if(canSafeMove(dir)) {
+            rc.move(dir);
+            return true;
         }
         return false;
     }
 
-    static boolean tryMove() throws GameActionException {
-        for (Direction dir : directions)
-            if (tryMove(dir))
-                return true;
-        return false;
-        // MapLocation loc = rc.getLocation();
-        // if (loc.x < 10 && loc.x < loc.y)
-        //     return tryMove(Direction.EAST);
-        // else if (loc.x < 10)
-        //     return tryMove(Direction.SOUTH);
-        // else if (loc.x > loc.y)
-        //     return tryMove(Direction.WEST);
-        // else
-        //     return tryMove(Direction.NORTH);
-    }
-
-    /**
-     * Attempts to move in a given direction.
-     *
-     * @param dir The intended direction of movement
-     * @return true if a move was performed
-     * @throws GameActionException
-     */
-    static boolean tryMove(Direction dir) throws GameActionException {
-        // System.out.println("I am trying to move " + dir + "; " + rc.isReady() + " " + rc.getCooldownTurns() + " " + rc.canMove(dir));
-        if (rc.isReady() && rc.canMove(dir)) {
-            rc.move(dir);
-            return true;
-        } else return false;
-    }
 
     /**
      * Attempts to build a given robot in a given direction.
@@ -531,7 +513,7 @@ public strictfp class RobotPlayer {
                     local_dir = RotDirFuncs.getRotated(local_dir, bug_rot_dir);
                 } while(canSafeMove(local_dir) && !local_dir.equals(bug_dir));
                 if(local_dir.equals(bug_dir)) {
-                    if(rc.getLocation().directionTo(locOfHQ) == bug_dir.opposite()) {
+                    if(rc.getLocation().directionTo(dest) == bug_dir.opposite()) {
                         tryGoSomewhere();
                         bug_dir = null;
                         bug_rot_dir = RotationDirection.NULL;
