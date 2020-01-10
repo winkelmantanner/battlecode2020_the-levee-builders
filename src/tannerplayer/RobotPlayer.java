@@ -246,7 +246,7 @@ public strictfp class RobotPlayer {
         return found_soup;
     }
 
-    static void updateWhereIveBeenRecords() throws GameActionException {
+    static void updateLocOfHQ() throws GameActionException {
         // To be called for moving units at the beginning of each turn
         if(locOfHQ == null) {
             for(RobotInfo rbt : rc.senseNearbyRobots()) {
@@ -267,7 +267,7 @@ public strictfp class RobotPlayer {
     }
 
     static void runMiner() throws GameActionException {
-        updateWhereIveBeenRecords();
+        updateLocOfHQ();
         if(roundNumCreated <= 2) {
             Direction build_dir = randomDirection();
             MapLocation build_loc = rc.getLocation().add(build_dir);
@@ -345,7 +345,7 @@ public strictfp class RobotPlayer {
     }
 
     static void runLandscaper() throws GameActionException {
-        updateWhereIveBeenRecords();
+        updateLocOfHQ();
         if(locOfHQ != null) {
             Direction lowest_unoccupied_dir = null;
             int min_diggable_elev = 30000;
@@ -425,6 +425,7 @@ public strictfp class RobotPlayer {
     }
 
     static void runDeliveryDrone() throws GameActionException {
+        updateLocOfHQ();
         if(rc.isReady()) {
             for(Direction dir : directions) {
                 MapLocation ml = rc.getLocation().add(dir);
@@ -450,7 +451,14 @@ public strictfp class RobotPlayer {
                     }
                 }
             }
-            tryGoSomewhere();
+            if(locOfHQ == null
+              || rc.isCurrentlyHoldingUnit()
+              || Math.random() < 0.25
+            ) {
+                tryGoSomewhere();
+            } else {
+                bugPathingStep(locOfHQ);
+            }
         }
     }
 
