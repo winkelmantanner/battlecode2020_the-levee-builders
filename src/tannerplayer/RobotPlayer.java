@@ -122,6 +122,8 @@ public strictfp class RobotPlayer {
             turnCount += 1;
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
+                int roundNumBefore = rc.getRoundNum();
+
                 // Here, we've separated the controls into a different method for each RobotType.
                 // You can add the missing ones or rewrite this into your own control structure.
                 // System.out.println("I'm a " + rc.getType() + "! Location " + rc.getLocation());
@@ -137,8 +139,8 @@ public strictfp class RobotPlayer {
                     case NET_GUN:            runNetGun();            break;
                 }
 
-                if(Clock.getBytecodeNum() >= 5000) {
-                    System.out.println("Bytecodes " + String.valueOf(Clock.getBytecodeNum()));
+                if(roundNumBefore != rc.getRoundNum()) {
+                    System.out.println("Took " + String.valueOf(rc.getRoundNum() - roundNumBefore) + " rounds");
                 }
 
                 // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
@@ -320,53 +322,64 @@ public strictfp class RobotPlayer {
     static void runLandscaper() throws GameActionException {
         updateWhereIveBeenRecords();
         if(locOfHQ != null) {
-            if(max_difference(locOfHQ, rc.getLocation()) >= 4) {
-                for(Direction dir : directions) {
-                    if(trySafeNonobstructiveDig(dir)) {
-                        System.out.println("I dug dirt " + rc.getLocation().add(dir).toString());
-                    }
+            Direction lowest_unoccupied_dir = null;
+            int min_diggable_elev = 30000;
+            for(Direction dir : directions) {
+                MapLocation l = rc.getLocation().add(dir);
+                if(isValid(l)
+                  && max_difference(l, locOfHQ) >= 2
+                  && rc.canDigDirt(dir)
+                  && rc.canSenseLocation(l)
+                  && !rc.isLocationOccupied(l)
+                  && rc.senseElevation(l) < min_diggable_elev
+                ) {
+                    lowest_unoccupied_dir = dir;
+                    min_diggable_elev = rc.senseElevation(l);
                 }
-            } else {
-                boolean can_deposit_adj_to_hq = false;
-                for(Direction dir : directions) {
-                    MapLocation l = rc.getLocation().add(dir);
-                    if(max_difference(l, locOfHQ) == 1) {
-                        can_deposit_adj_to_hq = true;
-                    }
+            }
+            if(lowest_unoccupied_dir != null) {
+                rc.digDirt(lowest_unoccupied_dir);
+                // System.out.println("I dug dirt");
+            }
+            boolean can_deposit_adj_to_hq = false;
+            for(Direction dir : directions) {
+                MapLocation l = rc.getLocation().add(dir);
+                if(max_difference(l, locOfHQ) == 1) {
+                    can_deposit_adj_to_hq = true;
                 }
-                if(can_deposit_adj_to_hq) {
-                    int min_elev = 12345;
-                    MapLocation min_elev_loc = null;
-                    for(int dx = -1; dx <= 1; dx++) {
-                        for(int dy = -1; dy <= 1; dy++) {
-                            MapLocation ml = locOfHQ.translate(dx, dy);
-                            if((dx != 0 || dy != 0) && isValid(ml) && rc.canSenseLocation(ml)) {
-                                int elev = rc.senseElevation(ml);
-                                if(elev < min_elev) {
-                                    min_elev = elev;
-                                    min_elev_loc = ml;
-                                }
+            }
+            if(can_deposit_adj_to_hq) {
+                int min_elev = 30000;
+                MapLocation min_elev_loc = null;
+                for(int dx = -1; dx <= 1; dx++) {
+                    for(int dy = -1; dy <= 1; dy++) {
+                        MapLocation ml = locOfHQ.translate(dx, dy);
+                        if((dx != 0 || dy != 0) && isValid(ml) && rc.canSenseLocation(ml)) {
+                            int elev = rc.senseElevation(ml);
+                            if(elev < min_elev) {
+                                min_elev = elev;
+                                min_elev_loc = ml;
                             }
                         }
                     }
-                    Direction dir_to_deposit = null;
-                    for(Direction dir : directions) {
-                        MapLocation l = rc.getLocation().add(dir);
-                        if(isValid(l)
-                          && max_difference(l, locOfHQ) == 1
-                          && rc.canSenseLocation(l)
-                          && rc.senseElevation(l) < min_elev + MAX_ELEVATION_STEP
-                        ) {
-                            dir_to_deposit = dir;
-                        }
-                    }
-                    if(dir_to_deposit != null && 
-                      tryDeposit(dir_to_deposit)
+                }
+                Direction dir_to_deposit = null;
+                for(Direction dir : directions) {
+                    MapLocation l = rc.getLocation().add(dir);
+                    if(isValid(l)
+                        && max_difference(l, locOfHQ) == 1
+                        && rc.canSenseLocation(l)
+                        && rc.senseElevation(l) < min_elev + MAX_ELEVATION_STEP
                     ) {
-                        System.out.println("I deposited dirt " + rc.getLocation().add(dir_to_deposit).toString());
-                    } else if(rc.getDirtCarrying() > 0) {
-                        bugPathingStep(min_elev_loc);
+                        dir_to_deposit = dir;
                     }
+                }
+                if(dir_to_deposit != null && 
+                    tryDeposit(dir_to_deposit)
+                ) {
+                    // System.out.println("I deposited dirt " + rc.getLocation().add(dir_to_deposit).toString());
+                } else if(rc.getDirtCarrying() > 0) {
+                    bugPathingStep(min_elev_loc);
                 }
             }
             if(rc.getDirtCarrying() >= RobotType.LANDSCAPER.dirtLimit) {
