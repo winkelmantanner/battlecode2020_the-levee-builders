@@ -421,11 +421,13 @@ public strictfp class RobotPlayer {
     }
 
     static boolean safeTryMove(Direction dir) throws GameActionException {
-        MapLocation landing_space = rc.getLocation().add(dir);
-        if ( rc.canSenseLocation(landing_space)
-          && !rc.senseFlooding(landing_space)
-        ) {
-            return tryMove(dir);
+        if(dir != null) {
+            MapLocation landing_space = rc.getLocation().add(dir);
+            if ( rc.canSenseLocation(landing_space)
+              && !rc.senseFlooding(landing_space)
+            ) {
+                return tryMove(dir);
+            }
         }
         return false;
     }
