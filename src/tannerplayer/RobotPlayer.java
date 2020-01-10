@@ -341,10 +341,13 @@ public strictfp class RobotPlayer {
                 rc.digDirt(lowest_unoccupied_dir);
                 // System.out.println("I dug dirt");
             }
+
             boolean can_deposit_adj_to_hq = false;
             for(Direction dir : directions) {
                 MapLocation l = rc.getLocation().add(dir);
-                if(max_difference(l, locOfHQ) == 1) {
+                if(rc.canDepositDirt(dir)
+                  && max_difference(l, locOfHQ) == 1
+                ) {
                     can_deposit_adj_to_hq = true;
                 }
             }
@@ -363,23 +366,30 @@ public strictfp class RobotPlayer {
                         }
                     }
                 }
-                Direction dir_to_deposit = null;
-                for(Direction dir : directions) {
-                    MapLocation l = rc.getLocation().add(dir);
-                    if(isValid(l)
-                        && max_difference(l, locOfHQ) == 1
-                        && rc.canSenseLocation(l)
-                        && rc.senseElevation(l) < min_elev + MAX_ELEVATION_STEP
-                    ) {
-                        dir_to_deposit = dir;
-                    }
-                }
-                if(dir_to_deposit != null && 
-                    tryDeposit(dir_to_deposit)
+                if(rc.canSenseLocation(rc.getLocation())
+                  && min_elev > rc.senseElevation(rc.getLocation())
+                  && rc.canDepositDirt(Direction.CENTER)
                 ) {
-                    // System.out.println("I deposited dirt " + rc.getLocation().add(dir_to_deposit).toString());
-                } else if(rc.getDirtCarrying() > 0) {
-                    bugPathingStep(min_elev_loc);
+                    rc.depositDirt(Direction.CENTER);
+                } else {
+                    Direction dir_to_deposit = null;
+                    for(Direction dir : directions) {
+                        MapLocation l = rc.getLocation().add(dir);
+                        if(isValid(l)
+                            && max_difference(l, locOfHQ) == 1
+                            && rc.canSenseLocation(l)
+                            && rc.senseElevation(l) < min_elev + MAX_ELEVATION_STEP
+                        ) {
+                            dir_to_deposit = dir;
+                        }
+                    }
+                    if(dir_to_deposit != null && 
+                        tryDeposit(dir_to_deposit)
+                    ) {
+                        // System.out.println("I deposited dirt " + rc.getLocation().add(dir_to_deposit).toString());
+                    } else if(rc.getDirtCarrying() > 0) {
+                        bugPathingStep(min_elev_loc);
+                    }
                 }
             }
             if(rc.getDirtCarrying() >= RobotType.LANDSCAPER.dirtLimit) {
