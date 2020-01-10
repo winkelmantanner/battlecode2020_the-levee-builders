@@ -80,6 +80,8 @@ public strictfp class RobotPlayer {
     static int numBuildingsBuilt = 0;
     static boolean hasBuiltRefinery = false;
 
+    static RobotInfo carried_unit_info = null;
+
     static int turnCount;
     static int roundNumCreated = -1;
 
@@ -423,9 +425,33 @@ public strictfp class RobotPlayer {
     }
 
     static void runDeliveryDrone() throws GameActionException {
-        Team enemy = rc.getTeam().opponent();
-        // bugPathingStep(new MapLocation(5,26));
-        tryGoSomewhere();
+        if(rc.isReady()) {
+            for(Direction dir : directions) {
+                MapLocation ml = rc.getLocation().add(dir);
+                if(isValid(ml)
+                && rc.canSenseLocation(ml)
+                ) {
+                    RobotInfo rbt = rc.senseRobotAtLocation(ml);
+                    if(rbt != null
+                        && rbt.team != rc.getTeam()
+                        && rc.canPickUpUnit(rbt.ID)
+                    ) {
+                        rc.pickUpUnit(rbt.ID);
+                        carried_unit_info = rbt;
+                        break;
+                    }
+                    if(carried_unit_info != null
+                        && carried_unit_info.team != rc.getTeam()
+                        && rc.isCurrentlyHoldingUnit()
+                        && rc.senseFlooding(ml)
+                        && rc.canDropUnit(dir)
+                    ) {
+                        rc.dropUnit(dir);
+                    }
+                }
+            }
+            tryGoSomewhere();
+        }
     }
 
     static void runNetGun() throws GameActionException {
