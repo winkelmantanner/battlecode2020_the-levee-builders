@@ -297,12 +297,10 @@ public strictfp class RobotPlayer {
                     numBuildingsBuilt++;
                 }
             } else if(rc.getRoundNum() > 100) {
-                if(Math.random() < 0.5) {
-                    tryGoSomewhere();
-                } else if(locOfHQ != null) {
-                    bugPathingStep(locOfHQ);
-                }
                 should_mine = false;
+            }
+            if(locOfHQ != null && Math.random() < 0.25) {
+                bugPathingStep(locOfHQ);
             }
         }
         if(should_mine) {
