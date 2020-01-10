@@ -320,7 +320,7 @@ public strictfp class RobotPlayer {
     static void runLandscaper() throws GameActionException {
         updateWhereIveBeenRecords();
         if(locOfHQ != null) {
-            if(max_difference(locOfHQ, rc.getLocation()) >= 7) {
+            if(max_difference(locOfHQ, rc.getLocation()) >= 4) {
                 for(Direction dir : directions) {
                     if(trySafeNonobstructiveDig(dir)) {
                         System.out.println("I dug dirt " + rc.getLocation().add(dir).toString());
