@@ -464,7 +464,7 @@ public strictfp class RobotPlayer {
             for(Direction dir : directions) {
                 MapLocation ml = rc.getLocation().add(dir);
                 if(isValid(ml)
-                && rc.canSenseLocation(ml)
+                    && rc.canSenseLocation(ml)
                 ) {
                     RobotInfo rbt = rc.senseRobotAtLocation(ml);
                     if(rbt != null
@@ -474,7 +474,22 @@ public strictfp class RobotPlayer {
                         rc.pickUpUnit(rbt.ID);
                         carried_unit_info = rbt;
                         break;
+                    } else if(
+                        rbt != null
+                        && rbt.type == RobotType.MINER
+                        && rbt.team == rc.getTeam()
+                        && locOfHQ != null
+                        && max_difference(
+                            rbt.location,
+                            locOfHQ
+                        ) == 1
+                        && rc.canPickUpUnit(rbt.ID)
+                    ) {
+                        rc.pickUpUnit(rbt.ID);
+                        carried_unit_info = rbt;
+                        break;
                     }
+
                     if(carried_unit_info != null
                         && carried_unit_info.team != rc.getTeam()
                         && rc.isCurrentlyHoldingUnit()
@@ -482,6 +497,20 @@ public strictfp class RobotPlayer {
                         && rc.canDropUnit(dir)
                     ) {
                         rc.dropUnit(dir);
+                        carried_unit_info = null;
+                        break;
+                    } else if(
+                        carried_unit_info != null
+                        && carried_unit_info.team == rc.getTeam()
+                        && rc.isCurrentlyHoldingUnit()
+                        && carried_unit_info.type == RobotType.MINER
+                    ) {
+                        Direction random_dir = randomDirection();
+                        if(rc.canDropUnit(random_dir)) {
+                            rc.dropUnit(random_dir);
+                            carried_unit_info = null;
+                            break;
+                        }
                     }
                 }
             }
