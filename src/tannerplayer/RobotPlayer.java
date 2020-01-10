@@ -364,6 +364,24 @@ public strictfp class RobotPlayer {
     static void runLandscaper() throws GameActionException {
         updateLocOfHQ();
         if(locOfHQ != null) {
+            // get adjacent to HQ
+            for(Direction dir : directions) {
+                MapLocation ml = rc.getLocation().add(dir);
+                if(isValid(ml)
+                  && max_difference(locOfHQ, ml) == 1
+                  && canSafeMove(dir)
+                ) {
+                    if(1 == max_difference(locOfHQ, rc.getLocation())) {
+                        if(Math.random() < 0.01) {
+                            rc.move(dir);
+                        }
+                    } else {
+                        rc.move(dir);
+                    }
+                }
+            }
+
+            // find direction to lowest adjacent tile that we can dig
             Direction lowest_unoccupied_dir = null;
             int min_diggable_elev = 30000;
             for(Direction dir : directions) {
@@ -379,6 +397,7 @@ public strictfp class RobotPlayer {
                     min_diggable_elev = rc.senseElevation(l);
                 }
             }
+            // dig lowest adjacent tile if possible
             if(lowest_unoccupied_dir != null) {
                 rc.digDirt(lowest_unoccupied_dir);
                 // System.out.println("I dug dirt");
