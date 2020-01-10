@@ -94,6 +94,7 @@ public strictfp class RobotPlayer {
     static int num_miners_built = 0; // used by HQ
 
     static int num_landscapers_built = 0; // design school
+    static int num_drones_built = 0; // fulfillment center
 
     static MapLocation locOfHQ = null;
 
@@ -332,7 +333,12 @@ public strictfp class RobotPlayer {
 
     static void runDesignSchool() throws GameActionException {
       for (Direction dir : directions) {
-        if(rc.canBuildRobot(RobotType.LANDSCAPER, dir)) {
+        if(rc.canBuildRobot(RobotType.LANDSCAPER, dir)
+          && num_landscapers_built <
+          0.0002
+          * rc.getTeamSoup()
+          * rc.getRoundNum()
+        ) {
           rc.buildRobot(RobotType.LANDSCAPER, dir);
           num_landscapers_built++;
         }
@@ -340,8 +346,13 @@ public strictfp class RobotPlayer {
     }
 
     static void runFulfillmentCenter() throws GameActionException {
-        for (Direction dir : directions)
-            tryBuild(RobotType.DELIVERY_DRONE, dir);
+        if(num_drones_built < 3) {
+            for (Direction dir : directions) {
+                boolean did_build = tryBuild(RobotType.DELIVERY_DRONE, dir);
+                if(did_build)
+                    num_drones_built++;
+            }
+        }
     }
 
     static void runLandscaper() throws GameActionException {
