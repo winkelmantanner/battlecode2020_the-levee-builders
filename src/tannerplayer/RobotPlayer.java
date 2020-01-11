@@ -123,7 +123,6 @@ public strictfp class RobotPlayer {
         ceilOfSensorRadius = (int) ceil(sqrt(rc.getType().sensorRadiusSquared));
 
 
-        System.out.println("I'm a " + rc.getType() + " and I just got created!");
         while (true) {
             turnCount += 1;
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
