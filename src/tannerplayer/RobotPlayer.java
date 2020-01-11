@@ -447,7 +447,8 @@ public strictfp class RobotPlayer {
                     ml = ml.add(dir);
                     if(!isValid(ml)
                         || !rc.canSenseLocation(ml)
-                        || rc.senseFlooding(ml)
+                        || (rc.senseFlooding(ml)
+                            && rc.getType() != RobotType.DELIVERY_DRONE)
                         || (abs(rc.senseElevation(ml) - last_elevation) > MAX_ELEVATION_STEP
                             && rc.getType() != RobotType.DELIVERY_DRONE)
                         || null != rc.senseRobotAtLocation(ml)
