@@ -213,39 +213,6 @@ public strictfp class RobotPlayer {
         }
     }
 
-    static boolean tryGoTowardSoup() throws GameActionException {
-        boolean found_soup = false;
-        if(rc.isReady()) {
-            for(Direction dir : directions) {
-                MapLocation ml = rc.getLocation();
-                boolean stop = false;
-                int last_elevation = rc.senseElevation(ml);
-                while(!stop) {
-                    ml = ml.add(dir);
-                    if(!isValid(ml)
-                      || !rc.canSenseLocation(ml)
-                      || rc.senseFlooding(ml)
-                      || abs(rc.senseElevation(ml) - last_elevation) > MAX_ELEVATION_STEP
-                      || null != rc.senseRobotAtLocation(ml)
-                    ) {
-                      stop = true;
-                    } else {
-                        last_elevation = rc.senseElevation(ml);
-                        if(0 < rc.senseSoup(ml) && rc.canMove(dir)) {
-                            current_dir = dir;
-                            found_soup = true;
-                            stop = true;
-                        }
-                    }
-                }
-            }
-            if(found_soup) {
-                rc.move(current_dir); // we already checked canMove and isReady
-            }
-        }
-
-        return found_soup;
-    }
 
     static void updateLocOfHQ() throws GameActionException {
         // To be called for moving units at the beginning of each turn
@@ -310,7 +277,7 @@ public strictfp class RobotPlayer {
 
             boolean has_moved_toward_soup = false;
             if(rc.getSoupCarrying() < RobotType.MINER.soupLimit) {
-                has_moved_toward_soup = tryGoTowardSoup();
+                has_moved_toward_soup = tryMoveToward(X.SOUP);
             }
             if(rc.getRoundNum() < 120) {
                 if(!has_moved_toward_soup && rc.getSoupCarrying() > 0) {
@@ -468,6 +435,52 @@ public strictfp class RobotPlayer {
         tryGoSomewhere();
     }
 
+    enum X{WATER, SOUP;};
+    static boolean tryMoveToward(X x) throws GameActionException {
+        boolean found = false;
+        if(rc.isReady()) {
+            for(Direction dir : directions) {
+                MapLocation ml = rc.getLocation();
+                boolean stop = false;
+                int last_elevation = rc.senseElevation(ml);
+                while(!stop) {
+                    ml = ml.add(dir);
+                    if(!isValid(ml)
+                        || !rc.canSenseLocation(ml)
+                        || rc.senseFlooding(ml)
+                        || (abs(rc.senseElevation(ml) - last_elevation) > MAX_ELEVATION_STEP
+                            && rc.getType() != RobotType.DELIVERY_DRONE)
+                        || null != rc.senseRobotAtLocation(ml)
+                    ) {
+                        stop = true;
+                    } else {
+                        last_elevation = rc.senseElevation(ml);
+                        switch(x) {
+                            case WATER:
+                                if(rc.senseFlooding(ml) && rc.canMove(dir)) {
+                                    current_dir = dir;
+                                    found = true;
+                                    stop = true;
+                                }
+                                break;
+                            case SOUP:
+                                if(0 < rc.senseSoup(ml) && rc.canMove(dir)) {
+                                    current_dir = dir;
+                                    found = true;
+                                    stop = true;
+                                }
+                                break;
+                        }
+                    }
+                }
+            }
+            if(found) {
+                rc.move(current_dir); // we already checked canMove and isReady
+            }
+        }
+        return found;
+    }
+
     static void runDeliveryDrone() throws GameActionException {
         updateLocOfHQ();
         if(rc.isReady()) {
@@ -481,6 +494,7 @@ public strictfp class RobotPlayer {
                         && rbt.team != rc.getTeam()
                         && rc.canPickUpUnit(rbt.ID)
                     ) {
+                        // pick up any enemy unit
                         rc.pickUpUnit(rbt.ID);
                         carried_unit_info = rbt;
                         break;
@@ -495,6 +509,7 @@ public strictfp class RobotPlayer {
                         ) == 1
                         && rc.canPickUpUnit(rbt.ID)
                     ) {
+                        // pick up miners off the levee
                         rc.pickUpUnit(rbt.ID);
                         carried_unit_info = rbt;
                         break;
@@ -506,6 +521,7 @@ public strictfp class RobotPlayer {
                         && rc.senseFlooding(ml)
                         && rc.canDropUnit(dir)
                     ) {
+                        // drop enemy units into water
                         rc.dropUnit(dir);
                         carried_unit_info = null;
                         break;
@@ -515,6 +531,7 @@ public strictfp class RobotPlayer {
                         && rc.isCurrentlyHoldingUnit()
                         && carried_unit_info.type == RobotType.MINER
                     ) {
+                        // drop friendly units anywhere, even on water
                         Direction random_dir = randomDirection();
                         if(rc.canDropUnit(random_dir)) {
                             rc.dropUnit(random_dir);
@@ -523,6 +540,14 @@ public strictfp class RobotPlayer {
                         }
                     }
                 }
+            }
+
+            if(carried_unit_info != null
+                && carried_unit_info.team != rc.getTeam()
+                && rc.isCurrentlyHoldingUnit()
+            ) {
+                // move toward water if carrying enemy unit
+                tryMoveToward(X.WATER);
             }
 
             if(!rc.isCurrentlyHoldingUnit()) {
@@ -534,6 +559,7 @@ public strictfp class RobotPlayer {
                     if(rbt.team != rc.getTeam()
                       && rbt.type.canBePickedUp()
                     ) {
+                        // move toward enemy units if not carrying anythin
                         if(Math.random() < 0.95) {
                             bugPathingStep(rbt.location);
                         }
@@ -541,6 +567,7 @@ public strictfp class RobotPlayer {
                 }
             }
 
+            // Generally stay near the HQ
             if(locOfHQ == null
               || rc.isCurrentlyHoldingUnit()
               || Math.random() < 0.25
