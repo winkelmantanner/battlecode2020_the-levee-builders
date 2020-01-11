@@ -378,6 +378,17 @@ public strictfp class RobotPlayer {
                 }
             }
 
+            // remove dirt from on top of HQ
+            for(Direction dir : directions) {
+                MapLocation ml = rc.getLocation().add(dir);
+                if(ml.equals(locOfHQ)
+                  && rc.canDigDirt(dir)
+                ) {
+                    rc.digDirt(dir);
+                    System.out.println("DUG DIRT OFF HQ");
+                }
+            }
+
             // find direction to lowest adjacent tile that we can dig
             Direction lowest_unoccupied_dir = null;
             int min_diggable_elev = 30000;
