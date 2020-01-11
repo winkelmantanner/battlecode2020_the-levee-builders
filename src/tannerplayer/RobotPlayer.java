@@ -284,7 +284,7 @@ public strictfp class RobotPlayer {
         if(roundNumCreated <= 2) {
             Direction build_dir = randomDirection();
             MapLocation build_loc = rc.getLocation().add(build_dir);
-            if(max_difference(locOfHQ, build_loc) >= 3) {
+            if(max_difference(locOfHQ, build_loc) == 3) {
                 // only one miner should build so that we can control what is built
                 RobotType type_to_build = null;
                 if(numBuildingsBuilt < minerBuildSequence.length) {
@@ -298,7 +298,7 @@ public strictfp class RobotPlayer {
             } else if(rc.getRoundNum() > 100) {
                 should_mine = false;
             }
-            if(locOfHQ != null && Math.random() < 0.25) {
+            if(locOfHQ != null && Math.random() < 0.5) {
                 bugPathingStep(locOfHQ);
             }
         }
