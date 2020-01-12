@@ -831,9 +831,38 @@ public strictfp class RobotPlayer {
         } else return false;
     }
 
+    static HashMap<String, ArrayList<Direction> > where_ive_been = new HashMap<String, ArrayList<Direction> >();
+    static boolean bugCanSafeMove(Direction dir) throws GameActionException {
+        String k = rc.getLocation().toString();
+        if(canSafeMove(dir)
+            && (!where_ive_been.containsKey(k)
+                || where_ive_been.get(k).indexOf(dir) == -1 // yes, Java has short-circuit evaluation
+            )
+        ) {
+            return true;
+        } else {
+            if(canSafeMove(dir)) {
+                System.out.println("move prevented " + dir.toString());
+            }
+            return false;
+        }
+    }
+    static boolean bugSafeTryMove(Direction dir) throws GameActionException {
+        String k = rc.getLocation().toString();
+        if(bugCanSafeMove(dir)) {
+            if(!where_ive_been.containsKey(k)) {
+                where_ive_been.put(k, new ArrayList<Direction>());
+            }
+            where_ive_been.get(k).add(dir);
+            rc.move(dir);
+            return true;
+        } else {
+            return false;
+        }
+    }
     static boolean bugTryMoveToward(MapLocation dest) throws GameActionException {
         Direction target_dir = rc.getLocation().directionTo(dest);
-        if(safeTryMove(target_dir)) {
+        if(bugSafeTryMove(target_dir)) {
             return true;
         } else {
             bug_rot_dir = Math.random() < 0.5 ? RotationDirection.RIGHT : RotationDirection.LEFT;
@@ -849,6 +878,7 @@ public strictfp class RobotPlayer {
             bug_dir = null;
             bug_dist = -1;
             bug_rot_dir = RotationDirection.NULL;
+            where_ive_been.clear();
         }
         if(rc.isReady()) {
             if(bug_dir == null) {
@@ -859,10 +889,14 @@ public strictfp class RobotPlayer {
                 Direction local_dir = bug_dir;
                 do {
                     local_dir = RotDirFuncs.getRotated(local_dir, bug_rot_dir);
-                } while(canSafeMove(local_dir) && !local_dir.equals(bug_dir));
+                } while(bugCanSafeMove(local_dir) && !local_dir.equals(bug_dir));
                 if(local_dir.equals(bug_dir)) {
                     if(rc.getLocation().directionTo(dest) == bug_dir.opposite()) {
-                        tryGoSomewhere();
+                        for(int k = 0; k < 10; k++) {
+                            if(bugSafeTryMove(randomDirection())) {
+                                break;
+                            }
+                        }
                         bug_dir = null;
                         bug_rot_dir = RotationDirection.NULL;
                     } else {
@@ -877,11 +911,14 @@ public strictfp class RobotPlayer {
                     bug_dir = local_dir;
                     do {
                         bug_dir = RotDirFuncs.getRotated(bug_dir, RotDirFuncs.getOpposite(bug_rot_dir));
-                    } while(!canSafeMove(bug_dir) && !bug_dir.equals(local_dir));
+                    } while(!bugCanSafeMove(bug_dir) && !bug_dir.equals(local_dir));
                     if(!bug_dir.equals(local_dir)) {
-                        rc.move(bug_dir);
+                        MapLocation loc_before = rc.getLocation();
+                        bugSafeTryMove(bug_dir);
                         did_move = true;
-                        if(max_difference(dest, rc.getLocation()) < bug_dist) {
+                        if(max_difference(dest, rc.getLocation()) < bug_dist
+                            && max_difference(dest, rc.getLocation()) >= max_difference(dest, loc_before)
+                        ) {
                             bug_dir = null;
                             bug_dist = -1;
                             bug_rot_dir = RotationDirection.NULL;
