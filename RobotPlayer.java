@@ -397,19 +397,35 @@ public strictfp class RobotPlayer {
         Direction dir_to_build = null;
         int dir_to_build_dist_from_hq = 12345;
         for (Direction dir : directions) {
-            if(rc.canBuildRobot(RobotType.LANDSCAPER, dir)
-                && num_landscapers_built < 8
-            ) {
-                MapLocation ml = rc.getLocation().add(dir);
-                if(locOfHQ == null
-                    || max_difference(ml, locOfHQ) < dir_to_build_dist_from_hq
+            if(locOfHQ != null) {
+                if(rc.canBuildRobot(RobotType.LANDSCAPER, dir)
+                    && rc.getTeamSoup() > RobotType.LANDSCAPER.cost * (1.2 + (((double)num_landscapers_built) / 5))
+                    && num_landscapers_built < 8
                 ) {
-                    dir_to_build = dir;
-                    if(locOfHQ != null) {
-                        dir_to_build_dist_from_hq = max_difference(rc.getLocation().add(dir_to_build), locOfHQ);
+                    MapLocation ml = rc.getLocation().add(dir);
+                    if(max_difference(ml, locOfHQ) < dir_to_build_dist_from_hq) {
+                        dir_to_build = dir;
+                        dir_to_build_dist_from_hq = max_difference(rc.getLocation().add(dir_to_build),
+                            locOfHQ
+                        );
                     }
                 }
-
+            } else if(opp_hq_loc != null) {
+                if(rc.canBuildRobot(RobotType.LANDSCAPER, dir)
+                    && rc.getTeamSoup() >= RobotType.LANDSCAPER.cost * (1 + (((double)num_landscapers_built) / 2))
+                ) {
+                    MapLocation ml = rc.getLocation().add(dir);
+                    if(max_difference(ml, opp_hq_loc) < dir_to_build_dist_from_hq) {
+                        dir_to_build = dir;
+                        dir_to_build_dist_from_hq = max_difference(rc.getLocation().add(dir_to_build),
+                            opp_hq_loc
+                        );
+                    }
+                }
+            } else if(rc.getTeamSoup() > RobotType.LANDSCAPER.cost * (1 + num_landscapers_built)) {
+                if(rc.canBuildRobot(RobotType.LANDSCAPER, dir)) {
+                    dir_to_build = dir;
+                }
             }
         }
         if(dir_to_build != null) {
