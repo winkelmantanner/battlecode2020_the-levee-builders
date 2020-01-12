@@ -403,7 +403,7 @@ public strictfp class RobotPlayer {
                     }
                 }
                 if(rc.canSenseLocation(rc.getLocation())
-                  && min_elev > rc.senseElevation(rc.getLocation())
+                  && min_elev >= rc.senseElevation(rc.getLocation())
                   && rc.canDepositDirt(Direction.CENTER)
                 ) {
                     rc.depositDirt(Direction.CENTER);
