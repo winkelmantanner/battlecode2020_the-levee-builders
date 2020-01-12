@@ -783,14 +783,19 @@ public strictfp class RobotPlayer {
     }
 
     /**
-     * Attempts to refine soup in a given direction.
+     * Attempts to refine soup in a given direction.  Only refines in our team's buildings.
      *
      * @param dir The intended direction of refining
      * @return true if a move was performed
      * @throws GameActionException
      */
     static boolean tryRefine(Direction dir) throws GameActionException {
-        if (rc.isReady() && rc.canDepositSoup(dir)) {
+        MapLocation ml = rc.getLocation().add(dir);
+        if (rc.isReady()
+            && rc.canDepositSoup(dir)
+            && rc.canSenseLocation(ml)
+            && rc.senseRobotAtLocation(ml).team == rc.getTeam()
+        ) {
             rc.depositSoup(dir, rc.getSoupCarrying());
             return true;
         } else return false;
