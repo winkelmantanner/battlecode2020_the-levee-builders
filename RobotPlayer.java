@@ -91,7 +91,8 @@ public strictfp class RobotPlayer {
 
     static final int MAX_ELEVATION_STEP = GameConstants.MAX_DIRT_DIFFERENCE; // I didn't see this in GameConstants until I'd already made this
 
-    static final int NUM_MINERS_TO_BUILD = 4; // used by HQ
+    static final int NUM_MINERS_TO_BUILD_INITIALLY = 3; // used by HQ
+    static final int TURN_TO_BUILD_ANOTHER_MINER = 150; // used by HQ
     static int num_miners_built = 0; // used by HQ
 
     static int num_landscapers_built = 0; // design school
@@ -176,7 +177,16 @@ public strictfp class RobotPlayer {
     }
 
     static void runHQ() throws GameActionException {
-        if(num_miners_built < NUM_MINERS_TO_BUILD && rc.getRoundNum() > 2 * num_miners_built) {
+        if(
+            (
+                num_miners_built < NUM_MINERS_TO_BUILD_INITIALLY
+                && rc.getRoundNum() > 2 * num_miners_built // make sure runMiner works with this
+            )
+            || (
+                rc.getRoundNum() > TURN_TO_BUILD_ANOTHER_MINER
+                && num_miners_built < 1 + NUM_MINERS_TO_BUILD_INITIALLY
+            )
+        ) {
             for (Direction dir : directions)
                 if(tryBuild(RobotType.MINER, dir)) {
                     num_miners_built++;
@@ -223,6 +233,16 @@ public strictfp class RobotPlayer {
                 }
             }
         }
+        if(opp_hq_loc == null) {
+            for(RobotInfo rbt : rc.senseNearbyRobots(
+                rc.getType().sensorRadiusSquared,
+                rc.getTeam().opponent()
+            )) {
+                if(rbt.getType() == RobotType.HQ) {
+                    opp_hq_loc = rbt.location;
+                }
+            }
+        }
         if(rc.getType() == RobotType.MINER
           && locOfRefinery == null
         ) {
@@ -245,13 +265,32 @@ public strictfp class RobotPlayer {
         }
     }
 
+    static MapLocation opp_hq_loc = null;
+
+    static MapLocation [] getWhereOppHqMightBe() {
+        // locOfHQ must not be null
+        MapLocation [] possible_locs = {
+            new MapLocation(rc.getMapWidth() - locOfHQ.x - 1, locOfHQ.y),
+            new MapLocation(rc.getMapWidth() - locOfHQ.x - 1, rc.getMapHeight() - locOfHQ.y - 1),
+            new MapLocation(locOfHQ.x, rc.getMapHeight() - locOfHQ.y - 1)
+        };
+        return possible_locs;
+    }
+    static boolean [] hq_might_be = {
+        true,
+        true,
+        true
+    };
+    static boolean has_built_rush_design_school = false;
     static void runMiner() throws GameActionException {
         updateLocOfHQ();
         boolean should_mine = true;
-        if(roundNumCreated <= 2) {
+        if(roundNumCreated <= 2) { // we are the first miner built
             Direction build_dir = randomDirection();
             MapLocation build_loc = rc.getLocation().add(build_dir);
-            if(max_difference(locOfHQ, build_loc) == 3) {
+            if(max_difference(locOfHQ, build_loc) == 3
+                && rc.getTeamSoup() > 3 + RobotType.DESIGN_SCHOOL.cost // allow the scout miner to build design school
+            ) {
                 // only one miner should build so that we can control what is built
                 RobotType type_to_build = null;
                 if(numBuildingsBuilt < minerBuildSequence.length) {
@@ -268,7 +307,56 @@ public strictfp class RobotPlayer {
             if(locOfHQ != null && Math.random() < 0.5) {
                 bugPathingStep(locOfHQ);
             }
+        } else if(roundNumCreated < 6) { // we are the second miner built
+            int next_stop_index = 0;
+            while(next_stop_index < hq_might_be.length && !hq_might_be[next_stop_index]) {
+                next_stop_index++;
+            }
+            if(rc.getRoundNum() < 150
+                && !has_built_rush_design_school
+                && (
+                    next_stop_index < hq_might_be.length
+                    || opp_hq_loc != null
+                )
+            ) {
+                should_mine = false;
+                RobotInfo opp_hq = null;
+                for(RobotInfo rbt : rc.senseNearbyRobots(
+                    RobotType.MINER.sensorRadiusSquared,
+                    rc.getTeam().opponent()
+                )) {
+                    if(rbt.type == RobotType.HQ) {
+                        opp_hq = rbt;
+                    }
+                }
+                if(opp_hq == null) {
+                    if(max_difference(rc.getLocation(), getWhereOppHqMightBe()[next_stop_index]) <= 1) {
+                        hq_might_be[next_stop_index] = false;
+                    }
+                } else { // opp_hq != null
+                    opp_hq_loc = opp_hq.location;
+                    for(Direction dir : directions) {
+                        MapLocation build_loc = rc.getLocation().add(dir);
+                        if(1 == max_difference(build_loc, opp_hq_loc)
+                            && rc.isReady()
+                            && rc.canBuildRobot(RobotType.DESIGN_SCHOOL, dir)
+                        ) {
+                            rc.buildRobot(RobotType.DESIGN_SCHOOL, dir);
+                            has_built_rush_design_school = true;
+                        }
+                    }
+                }
+
+                if(opp_hq_loc == null) {
+                    bugPathingStep(getWhereOppHqMightBe()[next_stop_index]);
+                } else {
+                    bugPathingStep(opp_hq_loc);
+                }
+            } else {
+                should_mine = true;
+            }
         }
+    
         if(should_mine) {
             for (Direction dir : directions)
                 tryMine(dir);
@@ -340,8 +428,82 @@ public strictfp class RobotPlayer {
         }
     }
 
+    static boolean digFromLowestAdjTile() throws GameActionException {
+        boolean did_dig = false;
+        // find direction to lowest adjacent tile that we can dig
+        Direction lowest_unoccupied_dir = null;
+        int min_diggable_elev = 30000;
+        for(Direction dir : directions) {
+            MapLocation l = rc.getLocation().add(dir);
+            if(isValid(l)
+                && (locOfHQ == null
+                    || max_difference(l, locOfHQ) >= 2
+                )
+                && rc.canDigDirt(dir)
+                && rc.canSenseLocation(l)
+                && !rc.isLocationOccupied(l) // don't dig on occupied tiles
+                && rc.senseElevation(l) < min_diggable_elev
+            ) {
+                lowest_unoccupied_dir = dir;
+                min_diggable_elev = rc.senseElevation(l);
+            }
+        }
+        // dig lowest adjacent tile if possible
+        if(lowest_unoccupied_dir != null) {
+            rc.digDirt(lowest_unoccupied_dir);
+            did_dig = true;
+            // System.out.println("I dug dirt");
+        }
+        return did_dig;
+    }
+
     static void runLandscaper() throws GameActionException {
         updateLocOfHQ();
+
+        // top priority: deposit on opponent buildings
+        Direction dir_to_deposit_to_bury_opponent_building = null;
+        RobotInfo rbt_to_bury = null;
+        for(Direction dir : directions) {
+            MapLocation ml = rc.getLocation().add(dir);
+            if(rc.isReady()
+                && rc.canDepositDirt(dir)
+                && rc.getDirtCarrying() > 0
+                && rc.canSenseLocation(ml)
+            ) {
+                RobotInfo rbt = rc.senseRobotAtLocation(ml);
+                if(rbt != null
+                    && rbt.team == rc.getTeam().opponent()
+                    && !rbt.type.canMove()
+                    && (rbt_to_bury == null || rbt_to_bury.type != RobotType.HQ) // prioritize the opponent's HQ
+                ) {
+                    dir_to_deposit_to_bury_opponent_building = dir;
+                    rbt_to_bury = rbt;
+                }
+            }
+        }
+        if(dir_to_deposit_to_bury_opponent_building != null) {
+            rc.depositDirt(dir_to_deposit_to_bury_opponent_building);
+        }
+
+        // If we have seen the opp HQ, move/dig toward it
+        if(opp_hq_loc != null) {
+            MapLocation target_tile = rc.getLocation().add(rc.getLocation().directionTo(opp_hq_loc));
+            
+            if(rc.getDirtCarrying() <= 0) {
+                // dig from lowest adjacent file that is not occupied
+                digFromLowestAdjTile();
+            } else if(rc.canSenseLocation(target_tile)
+                && rc.senseElevation(target_tile) - rc.senseElevation(rc.getLocation()) > 3
+                && max_difference(target_tile, opp_hq_loc) == 1
+                && rc.canDigDirt(rc.getLocation().directionTo(opp_hq_loc))
+            ) {
+                // dig through opp levee
+                rc.digDirt(rc.getLocation().directionTo(opp_hq_loc));
+            } else {
+                bugPathingStep(opp_hq_loc);
+            }
+        }
+
         if(locOfHQ != null) {
             // get adjacent to HQ
             for(Direction dir : directions) {
@@ -371,27 +533,8 @@ public strictfp class RobotPlayer {
                 }
             }
 
-            // find direction to lowest adjacent tile that we can dig
-            Direction lowest_unoccupied_dir = null;
-            int min_diggable_elev = 30000;
-            for(Direction dir : directions) {
-                MapLocation l = rc.getLocation().add(dir);
-                if(isValid(l)
-                  && max_difference(l, locOfHQ) >= 2
-                  && rc.canDigDirt(dir)
-                  && rc.canSenseLocation(l)
-                  && !rc.isLocationOccupied(l)
-                  && rc.senseElevation(l) < min_diggable_elev
-                ) {
-                    lowest_unoccupied_dir = dir;
-                    min_diggable_elev = rc.senseElevation(l);
-                }
-            }
-            // dig lowest adjacent tile if possible
-            if(lowest_unoccupied_dir != null) {
-                rc.digDirt(lowest_unoccupied_dir);
-                // System.out.println("I dug dirt");
-            }
+            // dig from the lowest adjacent tile that is not occupied by a robot
+            digFromLowestAdjTile();
 
             boolean can_deposit_adj_to_hq = false;
             for(Direction dir : directions) {
