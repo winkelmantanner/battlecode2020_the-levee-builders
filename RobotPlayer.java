@@ -1,6 +1,5 @@
 package tannerplayer;
 import battlecode.common.*;
-import tannerplayer.ObservationRecord;
 import static java.lang.Math.sqrt;
 import static java.lang.Math.ceil;
 import static java.lang.Math.max;
