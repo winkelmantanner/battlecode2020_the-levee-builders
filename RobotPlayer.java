@@ -176,7 +176,6 @@ public strictfp class RobotPlayer {
     }
 
     static void runHQ() throws GameActionException {
-        tryBlockchain();
         if(num_miners_built < NUM_MINERS_TO_BUILD && rc.getRoundNum() > 2 * num_miners_built) {
             for (Direction dir : directions)
                 if(tryBuild(RobotType.MINER, dir)) {
@@ -184,6 +183,7 @@ public strictfp class RobotPlayer {
                 }
         }
         shootOpponentDroneIfPossible();
+        tryToConfuseOpponentWithBlockchain();
     }
 
     static int max_difference(MapLocation ml1, MapLocation ml2) {
@@ -775,6 +775,51 @@ public strictfp class RobotPlayer {
         return false;
     }
 
+    static int firstRoundNum = -1;
+    static final int MAX_NUM_MESSAGES_TO_STORE = 500;
+    static int [][] recentMessages = new int[MAX_NUM_MESSAGES_TO_STORE][GameConstants.MAX_BLOCKCHAIN_TRANSACTION_LENGTH];
+    static int recentMessagesLength = 0;
+    static boolean tryToConfuseOpponentWithBlockchain() throws GameActionException {
+        boolean submitted = false;
+        if(firstRoundNum < 0) {
+            firstRoundNum = rc.getRoundNum();
+        } else {
+            if(rc.getRoundNum() > firstRoundNum) {
+                Transaction [] t = rc.getBlock(rc.getRoundNum() - 1);
+                for(int k = 0; k < t.length; k++) {
+                    if(t[k] != null && Math.random() < (1 - ((double)recentMessagesLength / MAX_NUM_MESSAGES_TO_STORE))) {
+                        recentMessages[recentMessagesLength] = t[k].getMessage();
+                        recentMessagesLength++;
+                    }
+                }
+            }
+            if(Math.random() < 0.05 && recentMessagesLength > 0) {
+                int [] message = recentMessages[(int) (Math.random() * recentMessagesLength)];
+                int [] message_copy = new int[message.length];
+                for(int k = 0; k < message.length; k++) {
+                    if(Math.random() < 0.5) {
+                        message_copy[k] = message[k];
+                    } else {
+                        if(Math.random() < 0.5) {
+                            message_copy[k] = (int) (Math.random() * rc.getMapWidth());
+                        } else {
+                            message_copy[k] = message[(int) (Math.random() * message.length)];
+                        }
+                    }
+                }
+                int cost = 1 + ((int) (Math.random() * 3));
+                if(rc.isReady()
+                    && rc.canSubmitTransaction(message_copy, cost)
+                ) {
+                    rc.submitTransaction(message_copy, cost);
+                }
+                submitted = true;
+            }
+        }
+        return submitted;
+    }
+
+
     static boolean tryDeposit(final Direction dir) throws GameActionException {
         if(rc.canDepositDirt(dir) && !rc.getLocation().add(dir).equals(locOfHQ)) {
             rc.depositDirt(dir);
@@ -817,15 +862,4 @@ public strictfp class RobotPlayer {
     }
 
 
-    static void tryBlockchain() throws GameActionException {
-        if (turnCount < 3) {
-            int[] message = new int[10];
-            for (int i = 0; i < 10; i++) {
-                message[i] = 123;
-            }
-            if (rc.canSubmitTransaction(message, 10))
-                rc.submitTransaction(message, 10);
-        }
-        // System.out.println(rc.getRoundMessages(turnCount-1));
-    }
 }
