@@ -305,14 +305,29 @@ public strictfp class RobotPlayer {
     }
 
     static void runDesignSchool() throws GameActionException {
-      for (Direction dir : directions) {
-        if(rc.canBuildRobot(RobotType.LANDSCAPER, dir)
-          && num_landscapers_built < 8
-        ) {
-          rc.buildRobot(RobotType.LANDSCAPER, dir);
-          num_landscapers_built++;
+        updateLocOfHQ();
+        Direction dir_to_build = null;
+        int dir_to_build_dist_from_hq = 12345;
+        for (Direction dir : directions) {
+            if(rc.canBuildRobot(RobotType.LANDSCAPER, dir)
+                && num_landscapers_built < 8
+            ) {
+                MapLocation ml = rc.getLocation().add(dir);
+                if(locOfHQ == null
+                    || max_difference(ml, locOfHQ) < dir_to_build_dist_from_hq
+                ) {
+                    dir_to_build = dir;
+                    if(locOfHQ != null) {
+                        dir_to_build_dist_from_hq = max_difference(rc.getLocation().add(dir_to_build), locOfHQ);
+                    }
+                }
+
+            }
         }
-      }
+        if(dir_to_build != null) {
+            rc.buildRobot(RobotType.LANDSCAPER, dir_to_build);
+            num_landscapers_built++;
+        }
     }
 
     static void runFulfillmentCenter() throws GameActionException {
