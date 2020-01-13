@@ -63,6 +63,7 @@ public strictfp class RobotPlayer {
     static RobotController rc;
 
     static Direction[] directions = {Direction.NORTH, Direction.NORTHEAST, Direction.EAST, Direction.SOUTHEAST, Direction.SOUTH, Direction.SOUTHWEST, Direction.WEST, Direction.NORTHWEST};
+    static Direction[] directions_including_center = {Direction.CENTER, Direction.NORTH, Direction.NORTHEAST, Direction.EAST, Direction.SOUTHEAST, Direction.SOUTH, Direction.SOUTHWEST, Direction.WEST, Direction.NORTHWEST};
     static RobotType[] spawnedByMiner = {RobotType.REFINERY, RobotType.VAPORATOR, RobotType.DESIGN_SCHOOL,
             RobotType.FULFILLMENT_CENTER, RobotType.NET_GUN};
     
@@ -599,14 +600,17 @@ public strictfp class RobotPlayer {
                     ) {
                         dir_to_deposit = Direction.CENTER;
                     } else {
-                        for(Direction dir : directions) {
+                        int yet_another_min_elev = 12345;
+                        for(Direction dir : directions_including_center) {
                             MapLocation l = rc.getLocation().add(dir);
                             if(isValid(l)
                                 && max_difference(l, locOfHQ) == 1
                                 && rc.canSenseLocation(l)
                                 && rc.senseElevation(l) < min_elev + MAX_ELEVATION_STEP
+                                && rc.senseElevation(l) < yet_another_min_elev
                             ) {
                                 dir_to_deposit = dir;
+                                yet_another_min_elev = rc.senseElevation(l);
                             }
                         }
                     }
