@@ -634,16 +634,16 @@ public strictfp class RobotPlayer {
                 }
             }
 
-            if(rc.isReady()) {
-                System.out.println("I didn't use my shovel this round and im " + (im_stuck() ? "stuck" : "not stuck"));
-                if(!im_stuck()) {
-                    for(Direction d : directions) {
-                        if(canSafeMove(d)) {
-                            System.out.println(d.toString());
-                        }
-                    }
-                }
-            }
+            // if(rc.isReady()) {
+            //     System.out.println("I didn't use my shovel this round and im " + (im_stuck() ? "stuck" : "not stuck"));
+            //     if(!im_stuck()) {
+            //         for(Direction d : directions) {
+            //             if(canSafeMove(d)) {
+            //                 System.out.println(d.toString());
+            //             }
+            //         }
+            //     }
+            // }
             if(rc.getDirtCarrying() >= RobotType.LANDSCAPER.dirtLimit) {
                 goToHQ();
             }
