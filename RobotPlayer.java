@@ -702,9 +702,14 @@ public strictfp class RobotPlayer {
                         && rc.isCurrentlyHoldingUnit()
                         && carried_unit_info.type == RobotType.MINER
                     ) {
-                        // drop friendly units anywhere, even on water
+                        // drop friendly units on safe ground
                         Direction random_dir = randomDirection();
-                        if(rc.canDropUnit(random_dir)) {
+                        MapLocation drop_loc = rc.getLocation().add(random_dir);
+                        if(rc.canDropUnit(random_dir)
+                            && rc.canSenseLocation(drop_loc)
+                            && !rc.senseFlooding(drop_loc)
+                            && rc.senseElevation(drop_loc) > 0
+                        ) {
                             rc.dropUnit(random_dir);
                             carried_unit_info = null;
                             break;
