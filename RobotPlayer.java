@@ -592,13 +592,13 @@ public strictfp class RobotPlayer {
                     }
                 }
                 if(max_difference(locOfHQ, rc.getLocation()) == 1) {
+                    Direction dir_to_deposit = null;
                     if(rc.canSenseLocation(rc.getLocation())
                         && min_elev >= rc.senseElevation(rc.getLocation())
                         && rc.canDepositDirt(Direction.CENTER)
                     ) {
-                        rc.depositDirt(Direction.CENTER);
+                        dir_to_deposit = Direction.CENTER;
                     } else {
-                        Direction dir_to_deposit = null;
                         for(Direction dir : directions) {
                             MapLocation l = rc.getLocation().add(dir);
                             if(isValid(l)
@@ -609,14 +609,14 @@ public strictfp class RobotPlayer {
                                 dir_to_deposit = dir;
                             }
                         }
-                        if(dir_to_deposit != null && 
-                            tryDeposit(dir_to_deposit)
-                        ) {
-                            // rc.setIndicatorDot(rc.getLocation().add(dir_to_deposit), 0, 255, 0);
-                            // System.out.println("I deposited dirt " + rc.getLocation().add(dir_to_deposit).toString());
-                        } else if(rc.getDirtCarrying() > 0) {
-                            bugPathingStep(min_elev_loc);
-                        }
+                    }
+                    if(dir_to_deposit != null && 
+                        tryDeposit(dir_to_deposit)
+                    ) {
+                        // rc.setIndicatorDot(rc.getLocation().add(dir_to_deposit), 0, 255, 0);
+                        // System.out.println("I deposited dirt " + rc.getLocation().add(dir_to_deposit).toString());
+                    } else if(rc.getDirtCarrying() > 0) {
+                        bugPathingStep(min_elev_loc);
                     }
                 } else if(max_difference(locOfHQ, rc.getLocation()) == 2) {
                     if(rc.canSenseLocation(rc.getLocation())
