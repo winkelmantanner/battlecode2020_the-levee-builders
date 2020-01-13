@@ -1000,7 +1000,7 @@ public strictfp class RobotPlayer {
                 int [] message = recentMessages[(int) (Math.random() * recentMessagesLength)];
                 int [] message_copy = new int[message.length];
                 for(int k = 0; k < message.length; k++) {
-                    if(Math.random() < 0.5) {
+                    if(Math.random() < 0.75) {
                         message_copy[k] = message[k];
                     } else {
                         if(Math.random() < 0.5) {
