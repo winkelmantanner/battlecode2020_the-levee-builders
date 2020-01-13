@@ -90,7 +90,7 @@ public strictfp class RobotPlayer {
 
     static final int MAX_ELEVATION_STEP = GameConstants.MAX_DIRT_DIFFERENCE; // I didn't see this in GameConstants until I'd already made this
 
-    static final int NUM_MINERS_TO_BUILD_INITIALLY = 3; // used by HQ
+    static final int NUM_MINERS_TO_BUILD_INITIALLY = 4; // used by HQ
     static final int TURN_TO_BUILD_ANOTHER_MINER = 150; // used by HQ
     static int num_miners_built = 0; // used by HQ
 
@@ -300,7 +300,7 @@ public strictfp class RobotPlayer {
                 if(tryBuild(type_to_build, build_dir)) {
                     numBuildingsBuilt++;
                 }
-            } else if(rc.getRoundNum() > 100) {
+            } else if(rc.getRoundNum() % 10 < 3) {
                 should_mine = false;
             }
             if(locOfHQ != null && Math.random() < 0.5) {
