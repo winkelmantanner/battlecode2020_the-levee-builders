@@ -448,19 +448,21 @@ public strictfp class RobotPlayer {
         int min_diggable_elev = 30000;
         for(Direction dir : directions) {
             MapLocation l = rc.getLocation().add(dir);
-            RobotInfo rbt_at_l = rc.senseRobotAtLocation(l);
             if(isValid(l)
-                && (locOfHQ == null
-                    || max_difference(l, locOfHQ) >= 2
-                )
-                && rc.canDigDirt(dir)
                 && rc.canSenseLocation(l)
-                && (rbt_at_l == null  // don't dig on occupied tiles
-                    || rbt_at_l.type == RobotType.DELIVERY_DRONE)
-                && rc.senseElevation(l) < min_diggable_elev
             ) {
-                lowest_unoccupied_dir = dir;
-                min_diggable_elev = rc.senseElevation(l);
+                RobotInfo rbt_at_l = rc.senseRobotAtLocation(l);
+                if((locOfHQ == null
+                        || max_difference(l, locOfHQ) >= 2
+                    )
+                    && rc.canDigDirt(dir)
+                    && (rbt_at_l == null  // don't dig on occupied tiles
+                        || rbt_at_l.type == RobotType.DELIVERY_DRONE)
+                    && rc.senseElevation(l) < min_diggable_elev
+                ) {
+                    lowest_unoccupied_dir = dir;
+                    min_diggable_elev = rc.senseElevation(l);
+                }
             }
         }
         // dig lowest adjacent tile if possible
@@ -470,6 +472,18 @@ public strictfp class RobotPlayer {
             // System.out.println("I dug dirt");
         }
         return did_dig;
+    }
+
+    static boolean im_stuck() throws GameActionException {
+        // because of the functions they provide, this function has undefined behavior, along with most movement-related functions.
+        // I with the functions they provide would actually work.
+        // Don't rely on this function returning the same if you call it two times consecutively.
+        for(Direction d : directions) {
+            if(canSafeMove(d)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     static void runLandscaper() throws GameActionException {
@@ -552,12 +566,14 @@ public strictfp class RobotPlayer {
             digFromLowestAdjTile();
 
             boolean can_deposit_adj_to_hq = false;
+            Direction dir_we_can_deposit_adj_to_hq = null; // not necessarily the lowest
             for(Direction dir : directions) {
                 MapLocation l = rc.getLocation().add(dir);
                 if(rc.canDepositDirt(dir)
                   && max_difference(l, locOfHQ) == 1
                 ) {
                     can_deposit_adj_to_hq = true;
+                    dir_we_can_deposit_adj_to_hq = dir;
                 }
             }
             if(can_deposit_adj_to_hq) {
@@ -575,29 +591,52 @@ public strictfp class RobotPlayer {
                         }
                     }
                 }
-                if(rc.canSenseLocation(rc.getLocation())
-                  && min_elev >= rc.senseElevation(rc.getLocation())
-                  && rc.canDepositDirt(Direction.CENTER)
-                ) {
-                    rc.depositDirt(Direction.CENTER);
-                } else {
-                    Direction dir_to_deposit = null;
-                    for(Direction dir : directions) {
-                        MapLocation l = rc.getLocation().add(dir);
-                        if(isValid(l)
-                            && max_difference(l, locOfHQ) == 1
-                            && rc.canSenseLocation(l)
-                            && rc.senseElevation(l) < min_elev + MAX_ELEVATION_STEP
+                if(max_difference(locOfHQ, rc.getLocation()) == 1) {
+                    if(rc.canSenseLocation(rc.getLocation())
+                        && min_elev >= rc.senseElevation(rc.getLocation())
+                        && rc.canDepositDirt(Direction.CENTER)
+                    ) {
+                        rc.depositDirt(Direction.CENTER);
+                    } else {
+                        Direction dir_to_deposit = null;
+                        for(Direction dir : directions) {
+                            MapLocation l = rc.getLocation().add(dir);
+                            if(isValid(l)
+                                && max_difference(l, locOfHQ) == 1
+                                && rc.canSenseLocation(l)
+                                && rc.senseElevation(l) < min_elev + MAX_ELEVATION_STEP
+                            ) {
+                                dir_to_deposit = dir;
+                            }
+                        }
+                        if(dir_to_deposit != null && 
+                            tryDeposit(dir_to_deposit)
                         ) {
-                            dir_to_deposit = dir;
+                            // rc.setIndicatorDot(rc.getLocation().add(dir_to_deposit), 0, 255, 0);
+                            // System.out.println("I deposited dirt " + rc.getLocation().add(dir_to_deposit).toString());
+                        } else if(rc.getDirtCarrying() > 0) {
+                            bugPathingStep(min_elev_loc);
                         }
                     }
-                    if(dir_to_deposit != null && 
-                        tryDeposit(dir_to_deposit)
+                } else if(max_difference(locOfHQ, rc.getLocation()) == 2) {
+                    if(rc.canSenseLocation(rc.getLocation())
+                        && rc.senseElevation(rc.getLocation()) < 400
                     ) {
-                        // System.out.println("I deposited dirt " + rc.getLocation().add(dir_to_deposit).toString());
-                    } else if(rc.getDirtCarrying() > 0) {
-                        bugPathingStep(min_elev_loc);
+                        // we know we have dirt since can_deposit_adj_to_hq
+                        rc.depositDirt(Direction.CENTER);
+                    } else {
+                        rc.depositDirt(dir_we_can_deposit_adj_to_hq);
+                    }
+                }
+            }
+
+            if(rc.isReady()) {
+                System.out.println("I didn't use my shovel this round and im " + (im_stuck() ? "stuck" : "not stuck"));
+                if(!im_stuck()) {
+                    for(Direction d : directions) {
+                        if(canSafeMove(d)) {
+                            System.out.println(d.toString());
+                        }
                     }
                 }
             }
