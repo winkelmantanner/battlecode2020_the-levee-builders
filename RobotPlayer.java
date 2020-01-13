@@ -800,7 +800,13 @@ public strictfp class RobotPlayer {
                 }
                 return rc.canMove(dir);
             default:
-                return rc.canMove(dir) && (!rc.canSenseLocation(loc) || !rc.senseFlooding(loc));
+                float water_level_in_5 = GameConstants.getWaterLevel(rc.getRoundNum() + 5);
+                return rc.canMove(dir)
+                    && (!rc.canSenseLocation(loc) || !rc.senseFlooding(loc))
+                    && (!rc.canSenseLocation(rc.getLocation())
+                        || water_level_in_5 >= rc.senseElevation(rc.getLocation())
+                        || water_level_in_5 < rc.senseElevation(loc)
+                    );
         }
     }
 
