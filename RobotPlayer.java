@@ -441,19 +441,22 @@ public strictfp class RobotPlayer {
     }
 
     static boolean digFromLowestAdjTile() throws GameActionException {
+        // digs from lowest adjacent tile not occupied by any robot except drone
         boolean did_dig = false;
         // find direction to lowest adjacent tile that we can dig
         Direction lowest_unoccupied_dir = null;
         int min_diggable_elev = 30000;
         for(Direction dir : directions) {
             MapLocation l = rc.getLocation().add(dir);
+            RobotInfo rbt_at_l = rc.senseRobotAtLocation(l);
             if(isValid(l)
                 && (locOfHQ == null
                     || max_difference(l, locOfHQ) >= 2
                 )
                 && rc.canDigDirt(dir)
                 && rc.canSenseLocation(l)
-                && !rc.isLocationOccupied(l) // don't dig on occupied tiles
+                && (rbt_at_l == null  // don't dig on occupied tiles
+                    || rbt_at_l.type == RobotType.DELIVERY_DRONE)
                 && rc.senseElevation(l) < min_diggable_elev
             ) {
                 lowest_unoccupied_dir = dir;
