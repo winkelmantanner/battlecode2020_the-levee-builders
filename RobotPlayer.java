@@ -366,15 +366,12 @@ public strictfp class RobotPlayer {
             if(rc.getSoupCarrying() < RobotType.MINER.soupLimit) {
                 has_moved_toward_soup = tryMoveToward(X.SOUP);
             }
-            if(rc.getRoundNum() < 120) {
-                if(!has_moved_toward_soup && rc.getSoupCarrying() > 0) {
+            if(!has_moved_toward_soup && rc.getSoupCarrying() > 0) {
+                if(locOfRefinery == null) {
                     goToHQ();
+                } else {
+                    bugPathingStep(locOfRefinery);
                 }
-            } else if(!has_moved_toward_soup
-              && locOfRefinery != null
-              && rc.getSoupCarrying() > 0
-            ) {
-                bugPathingStep(locOfRefinery);
             }
         } else { // !should_mine
             for (Direction dir : directions)
