@@ -30,34 +30,6 @@ import java.util.*;
 // open client/Battlecode\ Client.app/
 
 
-enum RotationDirection {
-    NULL,
-    LEFT,
-    RIGHT;
-}
-class RotDirFuncs {
-    static RotationDirection getOpposite(final RotationDirection d) {
-        switch(d) {
-            case LEFT:
-                return RotationDirection.RIGHT;
-            case RIGHT:
-                return RotationDirection.LEFT;
-            default:
-                return RotationDirection.NULL;
-        }
-    }
-    static Direction getRotated(final Direction dir, final RotationDirection rd) {
-        switch(rd) {
-            case LEFT:
-                return dir.rotateLeft();
-            case RIGHT:
-                return dir.rotateRight();
-            default:
-                return dir;
-        }
-    }
-}
-
 
 public strictfp class RobotPlayer {
     static RobotController rc;
@@ -73,12 +45,21 @@ public strictfp class RobotPlayer {
         // and to get information on its current status.
         RobotPlayer.rc = rc;
 
+        Robot me;
 
-        Robot me = new Robot(rc);
+
+        if(rc.getType().canMove()) {
+            me = new Unit(rc);
+        } else {
+            me = new Building(rc);
+        }
 
 
         while (true) {
             me.runTurn();
+            
+            // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
+            Clock.yield();
         }
     }
 
