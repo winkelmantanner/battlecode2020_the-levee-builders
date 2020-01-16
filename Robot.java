@@ -58,7 +58,12 @@ abstract public strictfp class Robot {
         }
         return nearbyOpponentUnits;
     }
-
+    
+    public void takeTurn() throws GameActionException {
+        beginTurn();
+        runTurn();
+        endTurn();
+    }
     abstract public void runTurn() throws GameActionException;
     
 

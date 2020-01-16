@@ -38,7 +38,6 @@ public strictfp class Miner extends Unit {
     };
     boolean has_built_rush_design_school = false;
     public void runTurn() throws GameActionException {
-        beginTurn();
         updateLocOfHQ();
         boolean should_mine = true;
         if(roundNumCreated <= 2) { // we are the first miner built
@@ -132,7 +131,6 @@ public strictfp class Miner extends Unit {
                 tryRefine(dir);
         }
         tryGoSomewhere();
-        endTurn();
     }
 
 

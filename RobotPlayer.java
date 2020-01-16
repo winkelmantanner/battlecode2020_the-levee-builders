@@ -64,7 +64,7 @@ public strictfp class RobotPlayer {
 
 
         while (true) {
-            me.runTurn();
+            me.takeTurn();
 
             // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
             Clock.yield();
