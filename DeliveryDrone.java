@@ -47,6 +47,8 @@ public strictfp class DeliveryDrone extends Unit {
                             rbt.location,
                             locOfHQ
                         ) == 1
+                        && rc.canSenseLocation(rbt.location)
+                        && rc.senseElevation(rbt.location) >= 10
                         && rc.canPickUpUnit(rbt.ID)
                     ) {
                         // pick up miners off the levee
