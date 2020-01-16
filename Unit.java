@@ -106,14 +106,18 @@ abstract public strictfp class Unit extends Robot {
                     ml = ml.add(dir);
                     if(!isValid(ml)
                         || !rc.canSenseLocation(ml)
-                        || (rc.senseFlooding(ml)
-                            && rc.getType() != RobotType.DELIVERY_DRONE)
-                        || (abs(rc.senseElevation(ml) - last_elevation) > MAX_ELEVATION_STEP
-                            && rc.getType() != RobotType.DELIVERY_DRONE)
-                        || null != rc.senseRobotAtLocation(ml)
                     ) {
                         stop = true;
                     } else {
+                        if(
+                            (rc.senseFlooding(ml)
+                                && rc.getType() != RobotType.DELIVERY_DRONE)
+                            || (abs(rc.senseElevation(ml) - last_elevation) > MAX_ELEVATION_STEP
+                                && rc.getType() != RobotType.DELIVERY_DRONE)
+                            || null != rc.senseRobotAtLocation(ml)
+                        ) {
+                            stop = true;
+                        }
                         last_elevation = rc.senseElevation(ml);
                         switch(x) {
                             case WATER:
