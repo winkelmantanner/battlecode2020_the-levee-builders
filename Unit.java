@@ -169,6 +169,14 @@ abstract public strictfp class Unit extends Robot {
                 return rc.canMove(dir);
             default:
                 float water_level_in_5 = GameConstants.getWaterLevel(rc.getRoundNum() + 5);
+                for(RobotInfo rbt : getNearbyOpponentUnits()) {
+                    if(rbt.type == RobotType.DELIVERY_DRONE
+                      && max_difference(loc, rbt.location) <= 2
+                      && max_difference(rc.getLocation(), rbt.location) > 2
+                    ) {
+                        return false;
+                    }
+                }
                 return rc.canMove(dir)
                     && (!rc.canSenseLocation(loc) || !rc.senseFlooding(loc))
                     && (!rc.canSenseLocation(rc.getLocation())
