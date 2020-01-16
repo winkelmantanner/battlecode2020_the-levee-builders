@@ -39,7 +39,8 @@ public strictfp class DeliveryDrone extends Unit {
                         carried_unit_info = rbt;
                         break;
                     } else if(
-                        rbt != null
+                        Math.random() < 0.2
+                        && rbt != null
                         && rbt.type == RobotType.MINER
                         && rbt.team == rc.getTeam()
                         && locOfHQ != null
@@ -47,8 +48,6 @@ public strictfp class DeliveryDrone extends Unit {
                             rbt.location,
                             locOfHQ
                         ) == 1
-                        && rc.canSenseLocation(rbt.location)
-                        && rc.senseElevation(rbt.location) >= 10
                         && rc.canPickUpUnit(rbt.ID)
                     ) {
                         // pick up miners off the levee
