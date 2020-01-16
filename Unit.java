@@ -67,7 +67,7 @@ abstract public strictfp class Unit extends Robot {
             tryGoSomewhere();
             return true;
         } else {
-            return bugPathingStep(locOfHQ);
+            return bugPathingStep(locOfHQ, true);
         }
     }
 
@@ -148,6 +148,9 @@ abstract public strictfp class Unit extends Robot {
     
 
     boolean canSafeMove(Direction dir) throws GameActionException {
+        return canSafeMove(dir, false);
+    }
+    boolean canSafeMove(Direction dir, final boolean can_move_to_below_water_level) throws GameActionException {
         // This func works for all unit types
         // Do not call if you are a building
         // VERY HIGH COMPLEXITY for drones
@@ -172,7 +175,10 @@ abstract public strictfp class Unit extends Robot {
                 }
                 return rc.canMove(dir);
             default:
-                float water_level_in_5 = GameConstants.getWaterLevel(rc.getRoundNum() + 5);
+                float water_level_in_5 = (can_move_to_below_water_level
+                    ? -1234
+                    : GameConstants.getWaterLevel(rc.getRoundNum() + 5)
+                );
                 for(RobotInfo rbt : getNearbyOpponentUnits()) {
                     if(rbt.type == RobotType.DELIVERY_DRONE
                       && max_difference(loc, rbt.location) <= 2
@@ -207,28 +213,186 @@ abstract public strictfp class Unit extends Robot {
 
 
 
+    class PrevEntry {
+        public MapLocation prev_loc;
+        public int roundNumRecorded;
+        PrevEntry(MapLocation prev_loc, int roundNum) {
+            this.set(prev_loc, roundNum);
+        }
+        void set(MapLocation prev_loc, int roundNum) {
+            this.prev_loc = prev_loc;
+            this.roundNumRecorded = roundNum;
+        }
+    }
+    int queue_begin = 0;
+    int queue_end = 0;
+    MapLocation [] queue = new MapLocation[4 * ceilOfSensorRadius * ceilOfSensorRadius];
+    void queuePush(MapLocation ml) {
+        queue[queue_end] = ml;
+        queue_end++;
+    }
+    MapLocation queuePop() {
+        queue_begin++;
+        return queue[queue_begin - 1];
+    }
+    boolean isQueueEmpty() {
+        return queue_begin == queue_end;
+    }
+    void clearQueue() {
+        queue_begin = 0;
+        queue_end = 0;
+    }
+    PrevEntry [] [] prev = new PrevEntry[2 * ceilOfSensorRadius][2 * ceilOfSensorRadius];
+    PrevEntry prevGet(final int x, final int y, final int our_x, final int our_y) {
+        // this function costs 23 bytecodes
+        return prev[x - our_x + ceilOfSensorRadius][y - our_y + ceilOfSensorRadius];
+    }
+    void prevSet(final int x, final int y, final int our_x, final int our_y, MapLocation prev_loc) {
+        prev[x - our_x + ceilOfSensorRadius][y - our_y + ceilOfSensorRadius].set(prev_loc, rc.getRoundNum());
+    }
+    boolean prev_has_been_initialized = false;
+    void wall_BFS_initialize_prev() {
+        if(!prev_has_been_initialized) {
+            for(int k = 0; k < 2 * ceilOfSensorRadius; k++) {
+                for(int j = 0; j < 2 * ceilOfSensorRadius; j++) {
+                    prev[k][j] = new PrevEntry(null, -1);
+                }
+            }
+            prev_has_been_initialized = true;
+        }
+    }
+    boolean wall_BFS_is_following_wall = false;
+    boolean wall_BFS_step(MapLocation dest) throws GameActionException {
+        if(!rc.isReady() || !rc.canSenseLocation(dest)) {
+            return false;
+        }
+        // System.out.println("I CAN OUTPUT STUFF");
+        if(!wall_BFS_is_following_wall) {
+            wall_BFS_is_following_wall = !safeTryMove(rc.getLocation().directionTo(dest));
+        }
+        if(wall_BFS_is_following_wall) {
+            wall_BFS_initialize_prev();
+            clearQueue();
+            int our_x = rc.getLocation().x;
+            int our_y = rc.getLocation().y;
+            queuePush(rc.getLocation());
+            prevSet(our_x, our_y, our_x, our_y, rc.getLocation());
+            boolean stop = false;
+            // System.out.println("I CAN OUTPUT STUFF");
+            MapLocation [] entries_to_process = new MapLocation[directions.length];
+            while(!stop && !isQueueEmpty()) {
+                MapLocation current_loc = queuePop();
+                // System.out.println("current_loc: " + current_loc.toString());
+                // System.out.println("bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
+                int current_loc_elevation = rc.senseElevation(current_loc);
+                boolean is_adjacent_to_wall = false;
+                int entries_to_process_length = 0;
+                PrevEntry pe = prevGet(current_loc.x, current_loc.y, our_x, our_y);
+                for(Direction dir : directions) {
+                    MapLocation neighbor = current_loc.add(dir);
+                    if(neighbor.equals(dest)) {
+                        prevSet(dest.x, dest.y, our_x, our_y, current_loc);
+                        stop = true;
+                        // System.out.println("FOUND IT");
+                    }
+                    // System.out.println("d bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
+                    if(!stop && !neighbor.equals(pe.prev_loc)) {
+                        if(!rc.canSenseLocation(neighbor)
+                            || rc.senseFlooding(neighbor)
+                            || MAX_ELEVATION_STEP < abs(rc.senseElevation(neighbor) - current_loc_elevation)
+                            || null != rc.senseRobotAtLocation(neighbor)
+                        ){
+                            // System.out.println("iaw=true bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
+                            is_adjacent_to_wall = true;
+                        } else if(
+                            // a PRUNING CONDITION
+                            max_difference(neighbor, dest) <= max_difference(current_loc, dest)
+                        ) {
+                            // System.out.println("a bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
+                            PrevEntry entry = prevGet(neighbor.x, neighbor.y, our_x, our_y);
+                            // System.out.println("b bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
+                            if(entry.roundNumRecorded != rc.getRoundNum()) {
+                                entries_to_process[entries_to_process_length] = neighbor;
+                                entries_to_process_length++;
+                            }
+                        }
+                    }
+                }
+
+                if(!stop
+                    && is_adjacent_to_wall // a PRUNING CONDITION
+                ) {
+                    // System.out.println("prepush bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
+                    for(int etp_index = 0;
+                        etp_index < entries_to_process_length;
+                        etp_index++
+                    ) {
+                        MapLocation entry = entries_to_process[etp_index];
+                        queuePush(entry);
+                        prevSet(entry.x, entry.y, our_x, our_y, current_loc);
+                    }
+                    // System.out.println("postpush bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
+                } else if(current_loc.equals(rc.getLocation())) {
+                    wall_BFS_is_following_wall = false;
+                }
+
+                if(Clock.getBytecodesLeft() < 4000) {
+                    stop = true;
+                }
+            } // end while
+
+            if(rc.getRoundNum() == prevGet(dest.x, dest.y, our_x, our_y).roundNumRecorded) {
+                MapLocation l = dest;
+                MapLocation prev_l = dest;
+                int infLoopPreventer = 100;
+                while(l != rc.getLocation() && infLoopPreventer > 0) {
+                    // System.out.println("l:" + l.toString() + " round:" + prevGet(l.x, l.y, our_x, our_y).roundNumRecorded);
+                    prev_l = l;
+                    l = prevGet(l.x, l.y, our_x, our_y).prev_loc;
+                    infLoopPreventer--;
+                }
+                if(l == rc.getLocation()) {
+                    Direction the_final_answer = rc.getLocation().directionTo(prev_l);
+                    // System.out.println("THE FINAL ANSWER: " + the_final_answer.toString());
+                    if(canSafeMove(the_final_answer, true)) {
+                        rc.move(the_final_answer);
+                        // System.out.println("RETURNING TRUE");
+
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+
+
+
+
+
 
 
 
     HashMap<String, ArrayList<Direction> > where_ive_been = new HashMap<String, ArrayList<Direction> >();
-    boolean bugCanSafeMove(Direction dir) throws GameActionException {
+    boolean bugCanSafeMove(Direction dir, final boolean can_move_to_below_water_level) throws GameActionException {
         String k = rc.getLocation().toString();
-        if(canSafeMove(dir)
+        if(canSafeMove(dir, can_move_to_below_water_level)
             && (!where_ive_been.containsKey(k)
                 || where_ive_been.get(k).indexOf(dir) == -1 // yes, Java has short-circuit evaluation
             )
         ) {
             return true;
         } else {
-            if(canSafeMove(dir)) {
-                System.out.println("move prevented " + dir.toString());
-            }
+            // if(canSafeMove(dir, can_move_to_below_water_level)) {
+            //     System.out.println("move prevented " + dir.toString());
+            // }
             return false;
         }
     }
-    boolean bugSafeTryMove(Direction dir) throws GameActionException {
+    boolean bugSafeTryMove(Direction dir, final boolean can_move_to_below_water_level) throws GameActionException {
         String k = rc.getLocation().toString();
-        if(bugCanSafeMove(dir)) {
+        if(bugCanSafeMove(dir, can_move_to_below_water_level)) {
             if(!where_ive_been.containsKey(k)) {
                 where_ive_been.put(k, new ArrayList<Direction>());
             }
@@ -239,9 +403,9 @@ abstract public strictfp class Unit extends Robot {
             return false;
         }
     }
-    boolean bugTryMoveToward(MapLocation dest) throws GameActionException {
+    boolean bugTryMoveToward(MapLocation dest, final boolean can_move_to_below_water_level) throws GameActionException {
         Direction target_dir = rc.getLocation().directionTo(dest);
-        if(bugSafeTryMove(target_dir)) {
+        if(bugSafeTryMove(target_dir, can_move_to_below_water_level)) {
             return true;
         } else {
             bug_rot_dir = Math.random() < 0.5 ? RotationDirection.RIGHT : RotationDirection.LEFT;
@@ -251,6 +415,9 @@ abstract public strictfp class Unit extends Robot {
         }
     }
     boolean bugPathingStep(MapLocation dest) throws GameActionException {
+        return bugPathingStep(dest, false);
+    }
+    boolean bugPathingStep(MapLocation dest, final boolean can_move_to_below_water_level) throws GameActionException {
         // dest must not be null
         boolean did_move = false;
         if(rc.getLocation() != bug_loc) {
@@ -262,17 +429,17 @@ abstract public strictfp class Unit extends Robot {
         if(rc.isReady()) {
             if(bug_dir == null) {
                 // This function modifies the variables
-                bugTryMoveToward(dest);
+                bugTryMoveToward(dest, can_move_to_below_water_level);
             }
             if(bug_dir != null) {
                 Direction local_dir = bug_dir;
                 do {
                     local_dir = RotDirFuncs.getRotated(local_dir, bug_rot_dir);
-                } while(bugCanSafeMove(local_dir) && !local_dir.equals(bug_dir));
+                } while(bugCanSafeMove(local_dir, can_move_to_below_water_level) && !local_dir.equals(bug_dir));
                 if(local_dir.equals(bug_dir)) {
                     if(rc.getLocation().directionTo(dest) == bug_dir.opposite()) {
                         for(int k = 0; k < 10; k++) {
-                            if(bugSafeTryMove(randomDirection())) {
+                            if(bugSafeTryMove(randomDirection(), can_move_to_below_water_level)) {
                                 break;
                             }
                         }
@@ -284,16 +451,16 @@ abstract public strictfp class Unit extends Robot {
                         bug_rot_dir = RotationDirection.NULL;
 
                         // This function modifies the variables
-                        bugTryMoveToward(dest);
+                        bugTryMoveToward(dest, can_move_to_below_water_level);
                     }
                 } else {
                     bug_dir = local_dir;
                     do {
                         bug_dir = RotDirFuncs.getRotated(bug_dir, RotDirFuncs.getOpposite(bug_rot_dir));
-                    } while(!bugCanSafeMove(bug_dir) && !bug_dir.equals(local_dir));
+                    } while(!bugCanSafeMove(bug_dir, can_move_to_below_water_level) && !bug_dir.equals(local_dir));
                     if(!bug_dir.equals(local_dir)) {
                         MapLocation loc_before = rc.getLocation();
-                        bugSafeTryMove(bug_dir);
+                        bugSafeTryMove(bug_dir, can_move_to_below_water_level);
                         did_move = true;
                         if(max_difference(dest, rc.getLocation()) < bug_dist
                             && max_difference(dest, rc.getLocation()) >= max_difference(dest, loc_before)
