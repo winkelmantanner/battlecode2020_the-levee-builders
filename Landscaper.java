@@ -194,6 +194,8 @@ public strictfp class Landscaper extends Unit {
                 } else if(max_difference(locOfHQ, rc.getLocation()) == 2) {
                     if(rc.canSenseLocation(rc.getLocation())
                         && rc.senseElevation(rc.getLocation()) < 400
+                        && rc.canSenseLocation(rc.getLocation().add(dir_we_can_deposit_adj_to_hq))
+                        && 4 < rc.senseElevation(rc.getLocation().add(dir_we_can_deposit_adj_to_hq))
                     ) {
                         // we know we have dirt since can_deposit_adj_to_hq
                         rc.depositDirt(Direction.CENTER);
