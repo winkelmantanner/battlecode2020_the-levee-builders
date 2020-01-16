@@ -122,7 +122,7 @@ public strictfp class Miner extends Unit {
             if(!has_moved_toward_soup && rc.getSoupCarrying() > 0) {
                 if(locOfRefinery == null) {
                     goToHQ();
-                } else {
+                } else if(Math.random() < 0.95) {
                     bugPathingStep(locOfRefinery);
                 }
             }
