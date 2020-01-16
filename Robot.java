@@ -46,6 +46,19 @@ abstract public strictfp class Robot {
         }
     }
 
+    RobotInfo [] nearbyOpponentUnits = null;
+    int roundNearbyOpponentUnitsWereRecorded = -1;
+    public RobotInfo [] getNearbyOpponentUnits() throws GameActionException {
+        if(rc.getRoundNum() != roundNearbyOpponentUnitsWereRecorded) {
+            nearbyOpponentUnits = rc.senseNearbyRobots(
+                rc.getType().sensorRadiusSquared,
+                rc.getTeam().opponent()
+            );
+            roundNearbyOpponentUnitsWereRecorded = rc.getRoundNum();
+        }
+        return nearbyOpponentUnits;
+    }
+
     abstract public void runTurn() throws GameActionException;
     
 
@@ -79,10 +92,7 @@ abstract public strictfp class Robot {
             }
         }
         if(opp_hq_loc == null) {
-            for(RobotInfo rbt : rc.senseNearbyRobots(
-                rc.getType().sensorRadiusSquared,
-                rc.getTeam().opponent()
-            )) {
+            for(RobotInfo rbt : getNearbyOpponentUnits()) {
                 if(rbt.getType() == RobotType.HQ) {
                     opp_hq_loc = rbt.location;
                 }

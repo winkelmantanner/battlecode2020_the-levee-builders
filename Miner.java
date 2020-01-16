@@ -77,10 +77,7 @@ public strictfp class Miner extends Unit {
             ) {
                 should_mine = false;
                 RobotInfo opp_hq = null;
-                for(RobotInfo rbt : rc.senseNearbyRobots(
-                    RobotType.MINER.sensorRadiusSquared,
-                    rc.getTeam().opponent()
-                )) {
+                for(RobotInfo rbt : getNearbyOpponentUnits()) {
                     if(rbt.type == RobotType.HQ) {
                         opp_hq = rbt;
                     }

@@ -96,11 +96,7 @@ public strictfp class DeliveryDrone extends Unit {
             }
 
             if(!rc.isCurrentlyHoldingUnit()) {
-                for(RobotInfo rbt : rc.senseNearbyRobots(
-                    rc.getLocation(),
-                    rc.getType().sensorRadiusSquared,
-                    rc.getTeam().opponent()
-                )) {
+                for(RobotInfo rbt : getNearbyOpponentUnits()) {
                     if(rbt.team != rc.getTeam()
                       && rbt.type.canBePickedUp()
                     ) {
