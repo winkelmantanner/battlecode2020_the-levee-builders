@@ -21,9 +21,9 @@ public strictfp class Miner extends Unit {
     // miner
     // only one miner builds the build sequence
     RobotType[] minerBuildSequence = {
+        RobotType.FULFILLMENT_CENTER,
         RobotType.REFINERY,
         RobotType.DESIGN_SCHOOL,
-        RobotType.FULFILLMENT_CENTER,
         RobotType.DESIGN_SCHOOL,
         RobotType.VAPORATOR,
         RobotType.NET_GUN,
@@ -132,6 +132,9 @@ public strictfp class Miner extends Unit {
         }
         tryGoSomewhere();
     }
+
+
+
 
 
 
