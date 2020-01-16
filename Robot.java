@@ -46,7 +46,7 @@ abstract public strictfp class Robot {
         }
     }
 
-    abstract public void runTurn();
+    abstract public void runTurn() throws GameActionException;
     
 
 

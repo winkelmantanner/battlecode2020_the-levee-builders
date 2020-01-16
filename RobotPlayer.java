@@ -47,17 +47,25 @@ public strictfp class RobotPlayer {
 
         Robot me;
 
-
-        if(rc.getType().canMove()) {
-            me = new Unit(rc);
-        } else {
-            me = new Building(rc);
+        switch(rc.getType()) {
+            case MINER:                 me = new Miner(rc);             break;
+            case LANDSCAPER:            me = new Landscaper(rc);        break;
+            case DELIVERY_DRONE:        me = new DeliveryDrone(rc);     break;
+            case HQ:                    me = new Hq(rc);                break;
+            case DESIGN_SCHOOL:         me = new DesignSchool(rc);      break;
+            case FULFILLMENT_CENTER:    me = new FulfillmentCenter(rc); break;
+            case NET_GUN:               me = new NetGun(rc);            break;
+            case REFINERY:              me = new Refinery(rc);          break;
+            case VAPORATOR:             me = new Vaporator(rc);         break;
+            default:                   return;
         }
+
+
 
 
         while (true) {
             me.runTurn();
-            
+
             // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
             Clock.yield();
         }
