@@ -171,7 +171,7 @@ abstract public strictfp class Robot {
 
     int firstRoundNum = -1;
     final int MAX_NUM_MESSAGES_TO_STORE = 500;
-    int [][] recentMessages = new int[MAX_NUM_MESSAGES_TO_STORE][GameConstants.MAX_BLOCKCHAIN_TRANSACTION_LENGTH];
+    int [][] recentMessages = new int[MAX_NUM_MESSAGES_TO_STORE][GameConstants.BLOCKCHAIN_TRANSACTION_LENGTH];
     int recentMessagesLength = 0;
     boolean tryToConfuseOpponentWithBlockchain() throws GameActionException {
         boolean submitted = false;
