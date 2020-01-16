@@ -102,7 +102,9 @@ public strictfp class Miner extends Unit {
                 if(opp_hq_loc == null) {
                     bugPathingStep(getWhereOppHqMightBe()[next_stop_index]);
                 } else {
-                    bugPathingStep(opp_hq_loc);
+                    if(!wall_BFS_step(opp_hq_loc)) {
+                        bugPathingStep(opp_hq_loc);
+                    }
                 }
             } else {
                 should_mine = true;
