@@ -262,6 +262,19 @@ abstract public strictfp class Unit extends Robot {
         }
     }
     boolean wall_BFS_is_following_wall = false;
+    // enum BFS_mode {
+    //     GET_TO_DEST, // non-drone unit tries to get to the destination.  The case of wall_BFS_step returning false must be handled.
+    //     COUNT_SOUP; // miner should use this to count the amount of soup in a soup deposit.  dest must be a MapLocation with soup
+    // }
+    // class SoupCount {
+    //     public int soup_count;
+    //     SoupCount(final int soup_count) {
+    //         this.soup_count = soup_count;
+    //     }
+    // }
+    // int count_soup_with_BFS(MapLocation soup_loc) {
+
+    // }
     boolean wall_BFS_step(MapLocation dest) throws GameActionException {
         if(!rc.isReady() || !rc.canSenseLocation(dest)) {
             return false;
@@ -271,84 +284,17 @@ abstract public strictfp class Unit extends Robot {
             wall_BFS_is_following_wall = !safeTryMove(rc.getLocation().directionTo(dest));
         }
         if(wall_BFS_is_following_wall) {
-            wall_BFS_initialize_prev();
-            clearQueue();
-            int our_x = rc.getLocation().x;
-            int our_y = rc.getLocation().y;
-            queuePush(rc.getLocation());
-            prevSet(our_x, our_y, our_x, our_y, rc.getLocation());
-            boolean stop = false;
-            // System.out.println("I CAN OUTPUT STUFF");
-            MapLocation [] entries_to_process = new MapLocation[directions.length];
-            while(!stop && !isQueueEmpty()) {
-                MapLocation current_loc = queuePop();
-                // System.out.println("current_loc: " + current_loc.toString());
-                // System.out.println("bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
-                int current_loc_elevation = rc.senseElevation(current_loc);
-                boolean is_adjacent_to_wall = false;
-                int entries_to_process_length = 0;
-                PrevEntry pe = prevGet(current_loc.x, current_loc.y, our_x, our_y);
-                for(Direction dir : directions) {
-                    MapLocation neighbor = current_loc.add(dir);
-                    if(neighbor.equals(dest)) {
-                        prevSet(dest.x, dest.y, our_x, our_y, current_loc);
-                        stop = true;
-                        // System.out.println("FOUND IT");
-                    }
-                    // System.out.println("d bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
-                    if(!stop && !neighbor.equals(pe.prev_loc)) {
-                        if(!rc.canSenseLocation(neighbor)
-                            || rc.senseFlooding(neighbor)
-                            || MAX_ELEVATION_STEP < abs(rc.senseElevation(neighbor) - current_loc_elevation)
-                            || null != rc.senseRobotAtLocation(neighbor)
-                        ){
-                            // System.out.println("iaw=true bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
-                            is_adjacent_to_wall = true;
-                        } else if(
-                            // a PRUNING CONDITION
-                            max_difference(neighbor, dest) <= max_difference(current_loc, dest)
-                        ) {
-                            // System.out.println("a bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
-                            PrevEntry entry = prevGet(neighbor.x, neighbor.y, our_x, our_y);
-                            // System.out.println("b bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
-                            if(entry.roundNumRecorded != rc.getRoundNum()) {
-                                entries_to_process[entries_to_process_length] = neighbor;
-                                entries_to_process_length++;
-                            }
-                        }
-                    }
-                }
 
-                if(!stop
-                    && is_adjacent_to_wall // a PRUNING CONDITION
-                ) {
-                    // System.out.println("prepush bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
-                    for(int etp_index = 0;
-                        etp_index < entries_to_process_length;
-                        etp_index++
-                    ) {
-                        MapLocation entry = entries_to_process[etp_index];
-                        queuePush(entry);
-                        prevSet(entry.x, entry.y, our_x, our_y, current_loc);
-                    }
-                    // System.out.println("postpush bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
-                } else if(current_loc.equals(rc.getLocation())) {
-                    wall_BFS_is_following_wall = false;
-                }
-
-                if(Clock.getBytecodesLeft() < 4000) {
-                    stop = true;
-                }
-            } // end while
-
-            if(rc.getRoundNum() == prevGet(dest.x, dest.y, our_x, our_y).roundNumRecorded) {
+            run_BFS(dest, rc.getLocation());
+            
+            if(rc.getRoundNum() == prevGet(dest.x, dest.y, rc.getLocation().x, rc.getLocation().y).roundNumRecorded) {
                 MapLocation l = dest;
                 MapLocation prev_l = dest;
                 int infLoopPreventer = 100;
                 while(l != rc.getLocation() && infLoopPreventer > 0) {
                     // System.out.println("l:" + l.toString() + " round:" + prevGet(l.x, l.y, our_x, our_y).roundNumRecorded);
                     prev_l = l;
-                    l = prevGet(l.x, l.y, our_x, our_y).prev_loc;
+                    l = prevGet(l.x, l.y, rc.getLocation().x, rc.getLocation().y).prev_loc;
                     infLoopPreventer--;
                 }
                 if(l == rc.getLocation()) {
@@ -364,6 +310,78 @@ abstract public strictfp class Unit extends Robot {
             }
         }
         return false;
+    }
+    void run_BFS(MapLocation dest, MapLocation start) throws GameActionException {
+        wall_BFS_initialize_prev();
+        clearQueue();
+        int our_x = rc.getLocation().x;
+        int our_y = rc.getLocation().y;
+        queuePush(start);
+        prevSet(start.x, start.y, our_x, our_y, rc.getLocation());
+        boolean stop = false;
+        // System.out.println("I CAN OUTPUT STUFF");
+        MapLocation [] entries_to_process = new MapLocation[directions.length];
+        while(!stop && !isQueueEmpty()) {
+            MapLocation current_loc = queuePop();
+            // System.out.println("current_loc: " + current_loc.toString());
+            // System.out.println("bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
+            int current_loc_elevation = rc.senseElevation(current_loc);
+            boolean is_adjacent_to_wall = false;
+            int entries_to_process_length = 0;
+            PrevEntry pe = prevGet(current_loc.x, current_loc.y, our_x, our_y);
+            for(Direction dir : directions) {
+                MapLocation neighbor = current_loc.add(dir);
+                if(neighbor.equals(dest)) {
+                    prevSet(dest.x, dest.y, our_x, our_y, current_loc);
+                    stop = true;
+                    // System.out.println("FOUND IT");
+                }
+                // System.out.println("d bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
+                if(!stop && !neighbor.equals(pe.prev_loc)) {
+                    if(!rc.canSenseLocation(neighbor)
+                        || rc.senseFlooding(neighbor)
+                        || MAX_ELEVATION_STEP < abs(rc.senseElevation(neighbor) - current_loc_elevation)
+                        || null != rc.senseRobotAtLocation(neighbor)
+                    ){
+                        // System.out.println("iaw=true bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
+                        is_adjacent_to_wall = true;
+                    } else if(
+                        // a PRUNING CONDITION
+                        max_difference(neighbor, dest) <= max_difference(current_loc, dest)
+                    ) {
+                        // System.out.println("a bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
+                        PrevEntry entry = prevGet(neighbor.x, neighbor.y, our_x, our_y);
+                        // System.out.println("b bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
+                        if(entry.roundNumRecorded != rc.getRoundNum()) {
+                            entries_to_process[entries_to_process_length] = neighbor;
+                            entries_to_process_length++;
+                        }
+                    }
+                }
+            }
+
+            if(!stop
+                && is_adjacent_to_wall // a PRUNING CONDITION
+            ) {
+                // System.out.println("prepush bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
+                for(int etp_index = 0;
+                    etp_index < entries_to_process_length;
+                    etp_index++
+                ) {
+                    MapLocation entry = entries_to_process[etp_index];
+                    queuePush(entry);
+                    prevSet(entry.x, entry.y, our_x, our_y, current_loc);
+                }
+                // System.out.println("postpush bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
+            } else if(current_loc.equals(start)) {
+                wall_BFS_is_following_wall = false;
+            }
+
+            if(Clock.getBytecodesLeft() < 4000) {
+                stop = true;
+            }
+        } // end while
+
     }
 
 
