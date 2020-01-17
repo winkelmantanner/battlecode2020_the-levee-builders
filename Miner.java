@@ -41,26 +41,27 @@ public strictfp class Miner extends Unit {
         updateLocOfHQ();
         boolean should_mine = true;
         if(roundNumCreated <= 2) { // we are the first miner built
-            Direction build_dir = randomDirection();
-            MapLocation build_loc = rc.getLocation().add(build_dir);
-            if(max_difference(locOfHQ, build_loc) == 3
-                && rc.getTeamSoup() > 3 + RobotType.DESIGN_SCHOOL.cost // allow the scout miner to build design school
-            ) {
-                // only one miner should build so that we can control what is built
-                RobotType type_to_build = null;
-                if(numBuildingsBuilt < minerBuildSequence.length) {
-                    type_to_build = minerBuildSequence[numBuildingsBuilt];
-                } else {
-                    type_to_build = randomSpawnedByMiner();
-                }
-                if(tryBuild(type_to_build, build_dir)) {
-                    numBuildingsBuilt++;
-                }
-            } else if(rc.getRoundNum() % 10 < 3) {
+            if(rc.getTeamSoup() > 3 + RobotType.DESIGN_SCHOOL.cost) {
                 should_mine = false;
-            }
-            if(locOfHQ != null && Math.random() < 0.5) {
-                bugPathingStep(locOfHQ);
+                Direction build_dir = randomDirection();
+                MapLocation build_loc = rc.getLocation().add(build_dir);
+                if(max_difference(locOfHQ, build_loc) == 3
+                    && rc.getTeamSoup() > 3 + RobotType.DESIGN_SCHOOL.cost // allow the scout miner to build design school
+                ) {
+                    // only one miner should build so that we can control what is built
+                    RobotType type_to_build = null;
+                    if(numBuildingsBuilt < minerBuildSequence.length) {
+                        type_to_build = minerBuildSequence[numBuildingsBuilt];
+                    } else {
+                        type_to_build = randomSpawnedByMiner();
+                    }
+                    if(tryBuild(type_to_build, build_dir)) {
+                        numBuildingsBuilt++;
+                    }
+                }
+                if(locOfHQ != null && Math.random() < 0.75) {
+                    bugPathingStep(locOfHQ);
+                }
             }
         } else if(roundNumCreated < 6) { // we are the second miner built
             int next_stop_index = 0;
