@@ -103,7 +103,9 @@ public strictfp class Miner extends Unit {
                     bugPathingStep(getWhereOppHqMightBe()[next_stop_index]);
                 } else {
                     if(!wall_BFS_step(opp_hq_loc)) {
-                        bugPathingStep(opp_hq_loc);
+                        if(Clock.getBytecodesLeft() > 3000) {
+                            bugPathingStep(opp_hq_loc);
+                        }
                     }
                 }
             } else {
@@ -149,17 +151,7 @@ public strictfp class Miner extends Unit {
             }
         }
         if(build_dir != null) {
-            MapLocation [] nearby_soup_locs = rc.senseNearbySoup(
-                rc.getType().sensorRadiusSquared - 5
-            );
-            // THIS IS SEVERELY FLAWED.
-            // Only a BFS can determine how much soup is actually reachable
-            int amount_of_soup_nearby = 0;
-            for(MapLocation ml : nearby_soup_locs) {
-                if(rc.canSenseLocation(ml)) {
-                    amount_of_soup_nearby += rc.senseSoup(ml);
-                }
-            }
+            int amount_of_soup_nearby = count_soup_with_BFS(rc.adjacentLocation(build_dir));
             if(amount_of_soup_nearby
                 > RobotType.REFINERY.cost
                     * (3 + (4 * numBuildingsBuilt))
@@ -174,6 +166,7 @@ public strictfp class Miner extends Unit {
                     }
                 }
                 if(!there_already_is_a_refinery) {
+                    System.out.println("I counted " + String.valueOf(amount_of_soup_nearby) + " soup so I built a refinery");
                     rc.buildRobot(RobotType.REFINERY, build_dir);
                     numBuildingsBuilt++;
                     return true;

@@ -262,19 +262,21 @@ abstract public strictfp class Unit extends Robot {
         }
     }
     boolean wall_BFS_is_following_wall = false;
-    // enum BFS_mode {
-    //     GET_TO_DEST, // non-drone unit tries to get to the destination.  The case of wall_BFS_step returning false must be handled.
-    //     COUNT_SOUP; // miner should use this to count the amount of soup in a soup deposit.  dest must be a MapLocation with soup
-    // }
-    // class SoupCount {
-    //     public int soup_count;
-    //     SoupCount(final int soup_count) {
-    //         this.soup_count = soup_count;
-    //     }
-    // }
-    // int count_soup_with_BFS(MapLocation soup_loc) {
-
-    // }
+    enum BFS_mode {
+        GET_TO_DEST, // non-drone unit tries to get to the destination.  The case of wall_BFS_step returning false must be handled.
+        COUNT_SOUP; // miner should use this to count the amount of soup in a soup deposit.  dest must be a MapLocation with soup
+    }
+    class SoupCount {
+        public int soup_count;
+        SoupCount(final int soup_count) {
+            this.soup_count = soup_count;
+        }
+    }
+    int count_soup_with_BFS(MapLocation soup_loc) throws GameActionException {
+        SoupCount count_holder = new SoupCount(0);
+        run_BFS(null, soup_loc, BFS_mode.COUNT_SOUP, count_holder);
+        return count_holder.soup_count;
+    }
     boolean wall_BFS_step(MapLocation dest) throws GameActionException {
         if(!rc.isReady() || !rc.canSenseLocation(dest)) {
             return false;
@@ -285,7 +287,7 @@ abstract public strictfp class Unit extends Robot {
         }
         if(wall_BFS_is_following_wall) {
 
-            run_BFS(dest, rc.getLocation());
+            run_BFS(dest, rc.getLocation(), BFS_mode.GET_TO_DEST);
             
             if(rc.getRoundNum() == prevGet(dest.x, dest.y, rc.getLocation().x, rc.getLocation().y).roundNumRecorded) {
                 MapLocation l = dest;
@@ -311,12 +313,18 @@ abstract public strictfp class Unit extends Robot {
         }
         return false;
     }
-    void run_BFS(MapLocation dest, MapLocation start) throws GameActionException {
+    void run_BFS(MapLocation dest, MapLocation start, final BFS_mode mode) throws GameActionException {
+        run_BFS(dest, start, mode, null);
+    }
+    void run_BFS(MapLocation dest, MapLocation start, final BFS_mode mode, final SoupCount count_holder) throws GameActionException {
         wall_BFS_initialize_prev();
         clearQueue();
         int our_x = rc.getLocation().x;
         int our_y = rc.getLocation().y;
         queuePush(start);
+        if(BFS_mode.COUNT_SOUP == mode && rc.canSenseLocation(start)) {
+            count_holder.soup_count += rc.senseSoup(start);
+        }
         prevSet(start.x, start.y, our_x, our_y, rc.getLocation());
         boolean stop = false;
         // System.out.println("I CAN OUTPUT STUFF");
@@ -342,12 +350,21 @@ abstract public strictfp class Unit extends Robot {
                         || rc.senseFlooding(neighbor)
                         || MAX_ELEVATION_STEP < abs(rc.senseElevation(neighbor) - current_loc_elevation)
                         || null != rc.senseRobotAtLocation(neighbor)
+                        || (BFS_mode.COUNT_SOUP == mode && 0 == rc.senseSoup(neighbor))
                     ){
                         // System.out.println("iaw=true bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
                         is_adjacent_to_wall = true;
+                        if(mode == BFS_mode.COUNT_SOUP
+                            && rc.canSenseLocation(neighbor)
+                            && rc.getRoundNum() != prevGet(neighbor.x, neighbor.y, our_x, our_y).roundNumRecorded
+                        ) {
+                            count_holder.soup_count += rc.senseSoup(neighbor);
+                            prevSet(neighbor.x, neighbor.y, our_x, our_y, current_loc);
+                        }
                     } else if(
+                        BFS_mode.COUNT_SOUP == mode
                         // a PRUNING CONDITION
-                        max_difference(neighbor, dest) <= max_difference(current_loc, dest)
+                        || max_difference(neighbor, dest) <= max_difference(current_loc, dest)
                     ) {
                         // System.out.println("a bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
                         PrevEntry entry = prevGet(neighbor.x, neighbor.y, our_x, our_y);
@@ -355,13 +372,16 @@ abstract public strictfp class Unit extends Robot {
                         if(entry.roundNumRecorded != rc.getRoundNum()) {
                             entries_to_process[entries_to_process_length] = neighbor;
                             entries_to_process_length++;
+                            if(BFS_mode.COUNT_SOUP == mode) {
+                                count_holder.soup_count += rc.senseSoup(neighbor);
+                            }
                         }
                     }
                 }
             }
 
             if(!stop
-                && is_adjacent_to_wall // a PRUNING CONDITION
+                && (is_adjacent_to_wall || BFS_mode.COUNT_SOUP == mode)  // a PRUNING CONDITION
             ) {
                 // System.out.println("prepush bytecodes left: " + String.valueOf(Clock.getBytecodesLeft()));
                 for(int etp_index = 0;
