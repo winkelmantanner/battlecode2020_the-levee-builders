@@ -79,6 +79,7 @@ public strictfp class DeliveryDrone extends Unit {
                             && rc.canSenseLocation(drop_loc)
                             && !rc.senseFlooding(drop_loc)
                             && rc.senseElevation(drop_loc) > 0
+                            && rc.senseElevation(drop_loc) < 12 + GameConstants.getWaterLevel(rc.getRoundNum())
                         ) {
                             rc.dropUnit(random_dir);
                             carried_unit_info = null;
