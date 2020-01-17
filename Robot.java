@@ -103,20 +103,18 @@ abstract public strictfp class Robot {
                 }
             }
         }
-        if(rc.getType() == RobotType.MINER
-          && locOfRefinery == null
-        ) {
+        if(locOfRefinery == null) {
             for(int [] myMessage : getMyMessages(rc.getRoundNum() - 1)) {
                 if(myMessage[0] == MessageType.LOC_OF_REFINERY.getValue()) {
                     locOfRefinery = new MapLocation(myMessage[1], myMessage[2]);
                 }
             }
-            for(RobotInfo rbt : rc.senseNearbyRobots()) {
-                if(rbt.getType() == RobotType.REFINERY
-                  && rbt.team == rc.getTeam()
-                ) {
-                    locOfRefinery = rbt.location;
-                }
+        }
+        for(RobotInfo rbt : rc.senseNearbyRobots()) {
+            if(rbt.getType() == RobotType.REFINERY
+                && rbt.team == rc.getTeam()
+            ) {
+                locOfRefinery = rbt.location;
             }
         }
     }

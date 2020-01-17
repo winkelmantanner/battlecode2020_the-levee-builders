@@ -112,6 +112,7 @@ public strictfp class Miner extends Unit {
         }
     
         if(should_mine) {
+            buildRefineryIfApplicable();
             for (Direction dir : directions)
                 tryMine(dir);
             for (Direction dir : directions)
@@ -133,6 +134,53 @@ public strictfp class Miner extends Unit {
                 tryRefine(dir);
         }
         tryGoSomewhere();
+    }
+
+    boolean buildRefineryIfApplicable() throws GameActionException {
+
+        Direction build_dir = null;
+        for(Direction dir : directions) {
+            MapLocation ml = rc.adjacentLocation(dir);
+            if(rc.canSenseLocation(ml)
+                && rc.senseSoup(ml) > 0
+                && rc.canBuildRobot(RobotType.REFINERY, dir)
+            ) {
+                build_dir = dir;
+            }
+        }
+        if(build_dir != null) {
+            MapLocation [] nearby_soup_locs = rc.senseNearbySoup(
+                rc.getType().sensorRadiusSquared - 5
+            );
+            // THIS IS SEVERELY FLAWED.
+            // Only a BFS can determine how much soup is actually reachable
+            int amount_of_soup_nearby = 0;
+            for(MapLocation ml : nearby_soup_locs) {
+                if(rc.canSenseLocation(ml)) {
+                    amount_of_soup_nearby += rc.senseSoup(ml);
+                }
+            }
+            if(amount_of_soup_nearby
+                > RobotType.REFINERY.cost
+                    * (3 + (4 * numBuildingsBuilt))
+                && rc.getTeamSoup() >= RobotType.REFINERY.cost
+            ) {
+                boolean there_already_is_a_refinery = false;
+                for(RobotInfo rbt : rc.senseNearbyRobots()) {
+                    if(rbt.type == RobotType.REFINERY
+                        || rbt.type == RobotType.HQ
+                    ) {
+                        there_already_is_a_refinery = true;
+                    }
+                }
+                if(!there_already_is_a_refinery) {
+                    rc.buildRobot(RobotType.REFINERY, build_dir);
+                    numBuildingsBuilt++;
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 
