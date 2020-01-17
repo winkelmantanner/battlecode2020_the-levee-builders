@@ -26,6 +26,19 @@ public strictfp class Hq extends Building {
                 && num_miners_built < 1 + NUM_MINERS_TO_BUILD_INITIALLY
             )
         ) {
+            Direction preferred_dir = null;
+            for(MapLocation ml : rc.senseNearbySoup()) {
+                preferred_dir = rc.getLocation().directionTo(ml);
+            }
+            if(preferred_dir != null) {
+                if(tryBuild(RobotType.MINER, preferred_dir)) {
+                    num_miners_built++;
+                } else if(tryBuild(RobotType.MINER, RotDirFuncs.getRotated(preferred_dir, RotationDirection.LEFT))) {
+                    num_miners_built++;
+                } else if(tryBuild(RobotType.MINER, RotDirFuncs.getRotated(preferred_dir, RotationDirection.RIGHT))) {
+                    num_miners_built++;
+                }
+            }
             for (Direction dir : directions)
                 if(tryBuild(RobotType.MINER, dir)) {
                     num_miners_built++;
