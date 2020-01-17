@@ -16,7 +16,7 @@ public strictfp class FulfillmentCenter extends Building {
         this.rc = rc;
     }
     public void runTurn() throws GameActionException {
-        if(num_drones_built < 3) {
+        if(rc.getTeamSoup() > RobotType.DELIVERY_DRONE.cost * (1 + num_drones_built)) {
             RobotInfo [] nearby_enemy_robots = rc.senseNearbyRobots(
                 rc.getType().sensorRadiusSquared,
                 rc.getTeam().opponent()
