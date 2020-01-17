@@ -42,9 +42,9 @@ abstract public strictfp class Unit extends Robot {
                 }
             }
             if(current_dir == null) {
-                current_dir = randomDirection();
                 int infLoopPreventer = 10;
                 do {
+                    current_dir = randomDirection();
                     if(!safeTryMove(current_dir)) {
                         current_dir = null;
                     }
