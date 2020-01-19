@@ -146,7 +146,51 @@ abstract public strictfp class Unit extends Robot {
     }
 
     
-
+    class CanSafeMove {
+        public int roundNum;
+        public boolean is_safe;
+        CanSafeMove(final int roundNum, final boolean is_safe) {
+            this.roundNum = roundNum;
+            this.is_safe = is_safe;
+        }
+        void set(final int roundNum, final boolean is_safe) {
+            this.roundNum = roundNum;
+            this.is_safe = is_safe;
+        }
+    }
+    CanSafeMove north_csm = new CanSafeMove(-1, false);
+    CanSafeMove northeast_csm = new CanSafeMove(-1, false);
+    CanSafeMove east_csm = new CanSafeMove(-1, false);
+    CanSafeMove southeast_csm = new CanSafeMove(-1, false);
+    CanSafeMove south_csm = new CanSafeMove(-1, false);
+    CanSafeMove southwest_csm = new CanSafeMove(-1, false);
+    CanSafeMove west_csm = new CanSafeMove(-1, false);
+    CanSafeMove northwest_csm = new CanSafeMove(-1, false);
+    CanSafeMove center_csm = new CanSafeMove(-1, false);
+    CanSafeMove getMemoizedCanSafeMove(Direction d) throws GameActionException {
+        switch (d) {
+            case NORTH:
+                return north_csm;
+            case NORTHEAST:
+                return northeast_csm;
+            case EAST:
+                return east_csm;
+            case SOUTHEAST:
+                return southeast_csm;
+            case SOUTH:
+                return south_csm;
+            case SOUTHWEST:
+                return southwest_csm;
+            case WEST:
+                return west_csm;
+            case NORTHWEST:
+                return northwest_csm;
+            case CENTER:
+                return center_csm;
+            default:
+                return null;
+        }
+    }
     boolean canSafeMove(Direction dir) throws GameActionException {
         return canSafeMove(dir, false);
     }
@@ -157,23 +201,30 @@ abstract public strictfp class Unit extends Robot {
         if(dir == null) {
             return false;
         }
-        MapLocation loc = rc.getLocation().add(dir);
-        if(!isValid(loc)) {
-            return false;
+        CanSafeMove csm = getMemoizedCanSafeMove(dir);
+        if(csm.roundNum == rc.getRoundNum()) {
+            return csm.is_safe;
         }
+        boolean is_safe = true;
+        MapLocation loc = rc.getLocation().add(dir);
+        if(!rc.onTheMap(loc)) {
+            is_safe = false;
+        }
+        boolean is_safe_from_enemy_robots = true;
         switch(rc.getType()) {
             case DELIVERY_DRONE:
                 for(RobotInfo rbt : rc.senseNearbyRobots()) {
                     if(rbt.team == rc.getTeam().opponent()
-                      && rbt.type.canShoot()
-                      && loc.isWithinDistanceSquared(
-                          rbt.location,
-                          GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED
+                    && rbt.type.canShoot()
+                    && loc.isWithinDistanceSquared(
+                        rbt.location,
+                        GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED
                     )) {
-                       return false;
+                        is_safe_from_enemy_robots = false;
                     }
                 }
-                return rc.canMove(dir);
+                is_safe = is_safe_from_enemy_robots && rc.canMove(dir);
+                break;
             default:
                 float water_level_in_5 = (can_move_to_below_water_level
                     ? -1234
@@ -181,19 +232,23 @@ abstract public strictfp class Unit extends Robot {
                 );
                 for(RobotInfo rbt : getNearbyOpponentUnits()) {
                     if(rbt.type == RobotType.DELIVERY_DRONE
-                      && max_difference(loc, rbt.location) <= 2
-                      && max_difference(rc.getLocation(), rbt.location) > 2
+                    && max_difference(loc, rbt.location) <= 2
+                    && max_difference(rc.getLocation(), rbt.location) > 2
                     ) {
-                        return false;
+                        is_safe_from_enemy_robots = false;
                     }
                 }
-                return rc.canMove(dir)
+                is_safe = is_safe_from_enemy_robots
+                    && rc.canMove(dir)
                     && (!rc.canSenseLocation(loc) || !rc.senseFlooding(loc))
                     && (!rc.canSenseLocation(rc.getLocation())
                         || water_level_in_5 >= rc.senseElevation(rc.getLocation())
                         || water_level_in_5 < rc.senseElevation(loc)
                     );
+                break;
         }
+        csm.set(rc.getRoundNum(), is_safe);
+        return is_safe;
     }
 
     boolean safeTryMove(Direction dir) throws GameActionException {
@@ -415,7 +470,8 @@ abstract public strictfp class Unit extends Robot {
     HashMap<String, ArrayList<Direction> > where_ive_been = new HashMap<String, ArrayList<Direction> >();
     boolean bugCanSafeMove(Direction dir, final boolean can_move_to_below_water_level) throws GameActionException {
         String k = rc.getLocation().toString();
-        if(canSafeMove(dir, can_move_to_below_water_level)
+        boolean can_safe_move = canSafeMove(dir, can_move_to_below_water_level);
+        if(can_safe_move
             && (!where_ive_been.containsKey(k)
                 || where_ive_been.get(k).indexOf(dir) == -1 // yes, Java has short-circuit evaluation
             )
