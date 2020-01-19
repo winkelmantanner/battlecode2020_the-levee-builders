@@ -64,7 +64,12 @@ public strictfp class RobotPlayer {
 
 
         while (true) {
-            me.takeTurn();
+            try {
+                me.takeTurn();
+            } catch (Exception e) {
+                System.out.println(rc.getType() + " Exception");
+                e.printStackTrace();
+            }
 
             // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
             Clock.yield();
