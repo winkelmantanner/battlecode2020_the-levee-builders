@@ -31,6 +31,9 @@ public strictfp class Miner extends Unit {
     };
     int numBuildingsBuilt = 0;
 
+    MapLocation where_i_found_soup = null;
+    int num_rounds_going_to_where_i_found_soup = 0;
+
     boolean [] hq_might_be = {
         true,
         true,
@@ -117,24 +120,45 @@ public strictfp class Miner extends Unit {
         if(should_mine) {
             buildRefineryIfApplicable();
             for (Direction dir : directions)
-                tryMine(dir);
-            for (Direction dir : directions)
-                tryRefine(dir);
+                if(tryMine(dir)) {
+                    where_i_found_soup = rc.adjacentLocation(dir);
+                }
+            for (Direction dir : directions) {
+                if(tryRefine(dir)) {
+                    num_rounds_going_to_where_i_found_soup = 0;
+                }
+            }
 
             boolean has_moved_toward_soup = false;
             if(rc.getSoupCarrying() < RobotType.MINER.soupLimit) {
                 has_moved_toward_soup = tryMoveToward(X.SOUP);
             }
-            if(!has_moved_toward_soup && rc.getSoupCarrying() > 0) {
-                if(locOfRefinery == null) {
-                    goToHQ();
-                } else if(Math.random() < 0.95) {
-                    bugPathingStep(locOfRefinery);
+            if(!has_moved_toward_soup) {
+                if(rc.getSoupCarrying() > 0) {
+                    if(locOfRefinery == null) {
+                        goToHQ();
+                    } else if(Math.random() < 0.95) {
+                        bugPathingStep(locOfRefinery);
+                    }
+                } else if(where_i_found_soup != null) { // rc.getSoupCarrying() == 0
+                    if(num_rounds_going_to_where_i_found_soup < 15) {
+                        if(Math.random() < 1) {
+                            // current_dir is used by tryGoSomewhere
+                            current_dir = rc.getLocation().directionTo(where_i_found_soup);
+                        }
+                        num_rounds_going_to_where_i_found_soup++;
+                    } else {
+                        where_i_found_soup = null;
+                        num_rounds_going_to_where_i_found_soup = 0;
+                    }
                 }
             }
         } else { // !should_mine
-            for (Direction dir : directions)
-                tryRefine(dir);
+            for (Direction dir : directions) {
+                if(tryRefine(dir)) {
+                    num_rounds_going_to_where_i_found_soup = 0;
+                }
+            }
         }
         tryGoSomewhere();
     }

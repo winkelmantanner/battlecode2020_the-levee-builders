@@ -205,7 +205,7 @@ abstract public strictfp class Unit extends Robot {
     boolean canSafeMove(Direction dir, final boolean can_move_to_below_water_level) throws GameActionException {
         // This func works for all unit types
         // Do not call if you are a building
-        // VERY HIGH COMPLEXITY for drones
+        // VERY HIGH COMPLEXITY
         if(dir == null) {
             return false;
         }
@@ -238,9 +238,9 @@ abstract public strictfp class Unit extends Robot {
                     ? -1234
                     : GameConstants.getWaterLevel(rc.getRoundNum() - 30)
                 );
-                float water_level_in_5 = (can_move_to_below_water_level
+                float water_level_in_20 = (can_move_to_below_water_level
                     ? -1234
-                    : GameConstants.getWaterLevel(rc.getRoundNum() + 5)
+                    : GameConstants.getWaterLevel(rc.getRoundNum() + 20)
                 );
                 for(RobotInfo rbt : getNearbyOpponentUnits()) {
                     if(rbt.type == RobotType.DELIVERY_DRONE
@@ -250,14 +250,17 @@ abstract public strictfp class Unit extends Robot {
                         is_safe_from_enemy_robots = false;
                     }
                 }
-                boolean flood_danger = rc.canSenseLocation(rc.getLocation())
-                    && water_level_in_5 > rc.senseElevation(rc.getLocation())
-                    && water_level_in_5 < rc.senseElevation(loc)
-                    && !(water_level_30_ago > rc.senseElevation(rc.getLocation()));
                 is_safe = is_safe_from_enemy_robots
                     && rc.canMove(dir)
-                    && (!rc.canSenseLocation(loc) || !rc.senseFlooding(loc))
-                    && !flood_danger;
+                    && (!rc.canSenseLocation(loc) || !rc.senseFlooding(loc));
+                if(is_safe) {
+                    boolean flood_danger = rc.canSenseLocation(loc)
+                        && rc.canSenseLocation(rc.getLocation())
+                        && water_level_in_20 > rc.senseElevation(loc)
+                        && water_level_in_20 < rc.senseElevation(rc.getLocation())
+                        && !(water_level_30_ago > rc.senseElevation(loc));
+                    is_safe = !flood_danger;
+                }
                 break;
         }
         csm.set(rc.getRoundNum(), is_safe);
@@ -267,7 +270,7 @@ abstract public strictfp class Unit extends Robot {
     boolean safeTryMove(Direction dir) throws GameActionException {
         // This func works for all unit types
         // Do not call if you are a building
-        // VERY HIGH COMPLEXITY for drones
+        // VERY HIGH COMPLEXITY
         if(canSafeMove(dir)) {
             rc.move(dir);
             return true;
