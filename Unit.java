@@ -30,14 +30,19 @@ abstract public strictfp class Unit extends Robot {
     MapLocation bug_loc = null; // used to tell if we moved since bugPathingStep was last called
 
 
-
-    void tryGoSomewhere() throws GameActionException {
+    boolean tryGoSomewhere() throws GameActionException {
+        return tryGoSomewhere(false);
+    }
+    boolean tryGoSomewhere(final boolean can_move_to_below_water_level) throws GameActionException {
+        boolean did_move = false;
         if(rc.isReady()) {
             if(Math.random() < 0.2) {
                 current_dir = null;
             }
             if(current_dir != null) {
-                if(!safeTryMove(current_dir)) {
+                if(safeTryMove(current_dir)) {
+                    did_move = true;
+                } else {
                     current_dir = null;
                 }
             }
@@ -45,13 +50,16 @@ abstract public strictfp class Unit extends Robot {
                 int infLoopPreventer = 10;
                 do {
                     current_dir = randomDirection();
-                    if(!safeTryMove(current_dir)) {
+                    if(safeTryMove(current_dir)) {
+                        did_move = true;
+                    } else {
                         current_dir = null;
                     }
                     infLoopPreventer--;
                 } while(current_dir == null && infLoopPreventer > 0);
             }
         }
+        return did_move;
     }
 
 
@@ -226,6 +234,10 @@ abstract public strictfp class Unit extends Robot {
                 is_safe = is_safe_from_enemy_robots && rc.canMove(dir);
                 break;
             default:
+                float water_level_30_ago = (can_move_to_below_water_level
+                    ? -1234
+                    : GameConstants.getWaterLevel(rc.getRoundNum() - 30)
+                );
                 float water_level_in_5 = (can_move_to_below_water_level
                     ? -1234
                     : GameConstants.getWaterLevel(rc.getRoundNum() + 5)
@@ -238,13 +250,14 @@ abstract public strictfp class Unit extends Robot {
                         is_safe_from_enemy_robots = false;
                     }
                 }
+                boolean flood_danger = rc.canSenseLocation(rc.getLocation())
+                    && water_level_in_5 > rc.senseElevation(rc.getLocation())
+                    && water_level_in_5 < rc.senseElevation(loc)
+                    && !(water_level_30_ago > rc.senseElevation(rc.getLocation()));
                 is_safe = is_safe_from_enemy_robots
                     && rc.canMove(dir)
                     && (!rc.canSenseLocation(loc) || !rc.senseFlooding(loc))
-                    && (!rc.canSenseLocation(rc.getLocation())
-                        || water_level_in_5 >= rc.senseElevation(rc.getLocation())
-                        || water_level_in_5 < rc.senseElevation(loc)
-                    );
+                    && !flood_danger;
                 break;
         }
         csm.set(rc.getRoundNum(), is_safe);
@@ -523,7 +536,7 @@ abstract public strictfp class Unit extends Robot {
         if(rc.isReady()) {
             if(bug_dir == null) {
                 // This function modifies the variables
-                bugTryMoveToward(dest, can_move_to_below_water_level);
+                did_move = bugTryMoveToward(dest, can_move_to_below_water_level);
             }
             if(bug_dir != null) {
                 Direction local_dir = bug_dir;
@@ -545,7 +558,7 @@ abstract public strictfp class Unit extends Robot {
                         bug_rot_dir = RotationDirection.NULL;
 
                         // This function modifies the variables
-                        bugTryMoveToward(dest, can_move_to_below_water_level);
+                        did_move = bugTryMoveToward(dest, can_move_to_below_water_level);
                     }
                 } else {
                     bug_dir = local_dir;
