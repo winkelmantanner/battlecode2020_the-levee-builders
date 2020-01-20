@@ -15,6 +15,9 @@ public strictfp class Hq extends Building {
         this.rc = rc;
     }
 
+    // we store where we found soup because the senseNearbySoup function is unreliable
+    Direction preferred_dir = null;
+    int preferred_dir_round_num = -1234;
     public void runTurn() throws GameActionException {
         if(
             (
@@ -26,9 +29,12 @@ public strictfp class Hq extends Building {
                 && num_miners_built < 1 + NUM_MINERS_TO_BUILD_INITIALLY
             )
         ) {
-            Direction preferred_dir = null;
+            if(preferred_dir_round_num + 20 < rc.getRoundNum()) {
+                preferred_dir = null;
+            }
             for(MapLocation ml : rc.senseNearbySoup()) {
                 preferred_dir = rc.getLocation().directionTo(ml);
+                preferred_dir_round_num = rc.getRoundNum();
             }
             if(preferred_dir != null) {
                 if(tryBuild(RobotType.MINER, preferred_dir)) {
