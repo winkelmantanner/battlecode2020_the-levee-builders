@@ -149,6 +149,7 @@ public strictfp class Landscaper extends Unit {
             if(can_deposit_adj_to_hq) {
                 int min_elev = 30000;
                 MapLocation min_elev_loc = null;
+                boolean is_enemy_landscaper_adj_to_hq = false;
                 for(int dx = -1; dx <= 1; dx++) {
                     for(int dy = -1; dy <= 1; dy++) {
                         MapLocation ml = locOfHQ.translate(dx, dy);
@@ -158,8 +159,18 @@ public strictfp class Landscaper extends Unit {
                                 min_elev = elev;
                                 min_elev_loc = ml;
                             }
+                            RobotInfo rbt_at_loc = rc.senseRobotAtLocation(ml);
+                            if(rbt_at_loc != null
+                                && rbt_at_loc.team == rc.getTeam().opponent()
+                                && rbt_at_loc.type == RobotType.LANDSCAPER
+                            ) {
+                                is_enemy_landscaper_adj_to_hq = true;
+                            }
                         }
                     }
+                }
+                if(is_enemy_landscaper_adj_to_hq) {
+                    System.out.println("ENEMY LANDSCAPER");
                 }
                 if(max_difference(locOfHQ, rc.getLocation()) == 1) {
                     Direction dir_to_deposit = null;
@@ -175,7 +186,8 @@ public strictfp class Landscaper extends Unit {
                             if(isValid(l)
                                 && max_difference(l, locOfHQ) == 1
                                 && rc.canSenseLocation(l)
-                                && rc.senseElevation(l) < min_elev + MAX_ELEVATION_STEP
+                                && (rc.senseElevation(l) < min_elev + MAX_ELEVATION_STEP
+                                    || is_enemy_landscaper_adj_to_hq)
                                 && rc.senseElevation(l) < yet_another_min_elev
                             ) {
                                 dir_to_deposit = dir;
