@@ -206,7 +206,7 @@ abstract public strictfp class Unit extends Robot {
         // This func works for all unit types
         // Do not call if you are a building
         // VERY HIGH COMPLEXITY
-        if(dir == null) {
+        if(dir == null || !rc.isReady()) {
             return false;
         }
         CanSafeMove csm = getMemoizedCanSafeMove(dir);
