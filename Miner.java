@@ -140,7 +140,7 @@ public strictfp class Miner extends Unit {
                     } else if(Math.random() < 0.95) {
                         bugPathingStep(locOfRefinery);
                     }
-                } else if(where_i_found_soup != null) { // rc.getSoupCarrying() == 0
+                } else if(where_i_found_soup != null && rc.isReady()) { // rc.getSoupCarrying() == 0
                     if(num_rounds_going_to_where_i_found_soup < 15) {
                         if(Math.random() < 1) {
                             // current_dir is used by tryGoSomewhere
@@ -150,6 +150,9 @@ public strictfp class Miner extends Unit {
                     } else {
                         where_i_found_soup = null;
                         num_rounds_going_to_where_i_found_soup = 0;
+                    }
+                    if(max_difference(rc.getLocation(), where_i_found_soup) <= 1) {
+                        where_i_found_soup = null;
                     }
                 }
             }
