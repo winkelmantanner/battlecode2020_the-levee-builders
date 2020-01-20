@@ -22,7 +22,6 @@ public strictfp class Miner extends Unit {
     // only one miner builds the build sequence
     RobotType[] minerBuildSequence = {
         RobotType.FULFILLMENT_CENTER,
-        RobotType.REFINERY,
         RobotType.DESIGN_SCHOOL,
         RobotType.DESIGN_SCHOOL,
         RobotType.VAPORATOR,
@@ -44,16 +43,34 @@ public strictfp class Miner extends Unit {
         updateLocOfHQ();
         boolean should_mine = true;
         if(roundNumCreated <= 2) { // we are the first miner built
-            if(rc.getTeamSoup() > 3 + RobotType.DESIGN_SCHOOL.cost) {
+            if(rc.getTeamSoup() > (25 * numBuildingsBuilt) + RobotType.DESIGN_SCHOOL.cost) { // allow the scout miner to build design school
                 should_mine = false;
                 Direction build_dir = randomDirection();
                 MapLocation build_loc = rc.getLocation().add(build_dir);
-                if(max_difference(locOfHQ, build_loc) == 3
-                    && rc.getTeamSoup() > 3 + RobotType.DESIGN_SCHOOL.cost // allow the scout miner to build design school
-                ) {
+                if(max_difference(locOfHQ, build_loc) == 3) {
                     // only one miner should build so that we can control what is built
                     RobotType type_to_build = null;
-                    if(numBuildingsBuilt < minerBuildSequence.length) {
+                    boolean should_build_refinery = false;
+                    if(null == locOfRefinery) {
+                        boolean friendly_landscaper_adj_to_hq = false;
+                        boolean enemy_landscaper_adj_to_hq = false;
+                        for(RobotInfo rbt : rc.senseNearbyRobots()) {
+                            if(rbt != null
+                                && rbt.type == RobotType.LANDSCAPER
+                                && 1 == max_difference(rbt.location, locOfHQ)
+                            ) {
+                                if(rbt.team == rc.getTeam()) {
+                                    friendly_landscaper_adj_to_hq = true;
+                                } else {
+                                    enemy_landscaper_adj_to_hq = true;
+                                }
+                            }
+                        }
+                        should_build_refinery = friendly_landscaper_adj_to_hq && !enemy_landscaper_adj_to_hq;
+                    }
+                    if(should_build_refinery) {
+                        type_to_build = RobotType.REFINERY;
+                    } else if(numBuildingsBuilt < minerBuildSequence.length) {
                         type_to_build = minerBuildSequence[numBuildingsBuilt];
                     } else {
                         type_to_build = randomSpawnedByMiner();
