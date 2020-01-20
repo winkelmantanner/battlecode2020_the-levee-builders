@@ -151,7 +151,7 @@ public strictfp class Miner extends Unit {
                         where_i_found_soup = null;
                         num_rounds_going_to_where_i_found_soup = 0;
                     }
-                    if(max_difference(rc.getLocation(), where_i_found_soup) <= 1) {
+                    if(where_i_found_soup != null && max_difference(rc.getLocation(), where_i_found_soup) <= 1) {
                         where_i_found_soup = null;
                     }
                 }
