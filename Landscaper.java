@@ -133,7 +133,8 @@ public strictfp class Landscaper extends Unit {
             }
 
             // dig from the lowest adjacent tile that is not occupied by a robot
-            digFromLowestAdjTile();
+            if(rc.getDirtCarrying() < MAX_ELEVATION_STEP)
+                digFromLowestAdjTile();
 
             boolean can_deposit_adj_to_hq = false;
             Direction dir_we_can_deposit_adj_to_hq = null; // not necessarily the lowest

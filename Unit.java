@@ -224,6 +224,7 @@ abstract public strictfp class Unit extends Robot {
                 for(RobotInfo rbt : rc.senseNearbyRobots()) {
                     if(rbt.team == rc.getTeam().opponent()
                     && rbt.type.canShoot()
+                    && rbt.cooldownTurns < 2
                     && loc.isWithinDistanceSquared(
                         rbt.location,
                         GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED
