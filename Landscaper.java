@@ -212,12 +212,13 @@ public strictfp class Landscaper extends Unit {
                     //         }
                     //     }
                     // }
-                    if(elev_of_dir_we_can_deposit_adj_to_hq <= min_elev
+                    if(elev_of_dir_we_can_deposit_adj_to_hq < min_elev + MAX_ELEVATION_STEP
                         && tryDeposit(dir_we_can_deposit_adj_to_hq)
                     ) {
-                        // rc.setIndicatorDot(rc.getLocation().add(dir_to_deposit), 0, 255, 0);
+                        // rc.setIndicatorDot(rc.getLocation().add(dir_we_can_deposit_adj_to_hq), 0, 255, 0);
                         // System.out.println("I deposited dirt " + rc.getLocation().add(dir_we_can_deposit_adj_to_hq).toString());
                     } else if(rc.getDirtCarrying() > 0) {
+                        // System.out.println("I MOVED");
                         bugPathingStep(min_elev_loc);
                     }
                 } else if(max_difference(locOfHQ, rc.getLocation()) == 2) {
