@@ -15,24 +15,37 @@ public strictfp class FulfillmentCenter extends Building {
         super(rc);
         this.rc = rc;
     }
+    int round_num_saw_enemy_net_gun = -1234;
     public void runTurn() throws GameActionException {
+        updateLocOfHQ();
         if(rc.getTeamSoup() > RobotType.DELIVERY_DRONE.cost * (1 + num_drones_built)) {
             RobotInfo [] nearby_enemy_robots = rc.senseNearbyRobots(
                 rc.getType().sensorRadiusSquared,
                 rc.getTeam().opponent()
             );
-            boolean is_safe_to_build_drones = true;
             for(RobotInfo rbt : nearby_enemy_robots) {
                 if(rbt.type == RobotType.NET_GUN) {
-                    is_safe_to_build_drones = false;
+                    round_num_saw_enemy_net_gun = rc.getRoundNum();
                 }
             }
-            if(is_safe_to_build_drones) {
+            if(rc.getRoundNum() - round_num_saw_enemy_net_gun > 30) {
+                Direction build_dir = null;
+                int min_build_dist_from_hq = 1234;
                 for (Direction dir : directions) {
-                    boolean did_build = tryBuild(RobotType.DELIVERY_DRONE, dir);
-                    if(did_build)
-                        num_drones_built++;
+                    MapLocation l = rc.adjacentLocation(dir);
+                    if(rc.canBuildRobot(RobotType.DELIVERY_DRONE, dir)
+                        && (locOfHQ == null
+                            || max_difference(l, locOfHQ) < min_build_dist_from_hq)
+                    ) {
+                        build_dir = dir;
+                        if(locOfHQ != null) {
+                            min_build_dist_from_hq = max_difference(l, locOfHQ);
+                        }
+                    }
                 }
+                boolean did_build = tryBuild(RobotType.DELIVERY_DRONE, build_dir);
+                if(did_build)
+                    num_drones_built++;
             }
         }
     }
