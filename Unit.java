@@ -65,7 +65,44 @@ abstract public strictfp class Unit extends Robot {
 
 
 
-    
+
+
+    HashMap<String, Integer> fuzzy_where_ive_been = new HashMap<String, Integer>();
+    boolean fuzzy_step(final MapLocation dest) throws GameActionException {
+        fuzzy_where_ive_been.put(rc.getLocation().toString(), rc.getRoundNum());
+        final Direction target_dir = rc.getLocation().directionTo(dest);
+        Direction dir = target_dir;
+        final Direction opposite_dir = target_dir.opposite();
+        boolean has_moved = false;
+        int num_to_rotate = 1;
+        boolean move_left = true;
+        boolean stop = false;
+        while(!stop && !has_moved && dir != opposite_dir) {
+            if(move_left) {
+                for(int k = 0; k < num_to_rotate; k++) {
+                    dir = dir.rotateLeft();
+                }
+            } else {
+                for(int k = 0; k < num_to_rotate; k++) {
+                    dir = dir.rotateRight();
+                }
+            }
+
+            String key = rc.adjacentLocation(dir).toString();
+            if(!fuzzy_where_ive_been.containsKey(key)
+                || fuzzy_where_ive_been.get(key) + 10 < rc.getRoundNum()
+            ) {
+                has_moved = safeTryMove(dir);
+            } else {
+                // Don't get stuck in large cup shapes
+                stop = true;
+            }
+            move_left = !move_left;
+            num_to_rotate++;
+        }
+        return has_moved;
+    }
+
     // @SuppressWarnings("unused")
     // abstract public void runTurn() throws GameActionException;
 
