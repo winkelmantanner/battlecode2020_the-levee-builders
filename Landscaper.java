@@ -222,8 +222,7 @@ public strictfp class Landscaper extends Unit {
                         bugPathingStep(min_elev_loc);
                     }
                 } else if(max_difference(locOfHQ, rc.getLocation()) == 2) {
-                    if(!is_enemy_landscaper_adj_to_hq
-                        && rc.canSenseLocation(rc.getLocation())
+                    if(rc.canSenseLocation(rc.getLocation())
                         && rc.senseElevation(rc.getLocation()) < 200
                         && rc.senseElevation(rc.getLocation()) <= min_elev
                     ) {
