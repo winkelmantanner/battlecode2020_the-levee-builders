@@ -83,60 +83,67 @@ public strictfp class Miner extends Unit {
                     bugPathingStep(locOfHQ);
                 }
             }
-        } else if(roundNumCreated < 6) { // we are the second miner built
-            int next_stop_index = 0;
-            while(next_stop_index < hq_might_be.length && !hq_might_be[next_stop_index]) {
-                next_stop_index++;
-            }
-            if(rc.getRoundNum() < 150
-                && !has_built_rush_design_school
-                && (
-                    next_stop_index < hq_might_be.length
-                    || opp_hq_loc != null
-                )
-            ) {
-                should_mine = false;
-                RobotInfo opp_hq = null;
-                for(RobotInfo rbt : getNearbyOpponentUnits()) {
-                    if(rbt.type == RobotType.HQ) {
-                        opp_hq = rbt;
-                    }
-                }
-                if(opp_hq == null) {
-                    if(max_difference(rc.getLocation(), getWhereOppHqMightBe()[next_stop_index]) <= 1) {
-                        hq_might_be[next_stop_index] = false;
-                    }
-                } else { // opp_hq != null
-                    opp_hq_loc = opp_hq.location;
-                    for(Direction dir : directions) {
-                        MapLocation build_loc = rc.getLocation().add(dir);
-                        if(1 == max_difference(build_loc, opp_hq_loc)
-                            && rc.isReady()
-                            && rc.canBuildRobot(RobotType.DESIGN_SCHOOL, dir)
-                        ) {
-                            rc.buildRobot(RobotType.DESIGN_SCHOOL, dir);
-                            has_built_rush_design_school = true;
-                        }
-                    }
-                }
+        // } else if(roundNumCreated < 6) { // we are the second miner built
+        //     int next_stop_index = 0;
+        //     while(next_stop_index < hq_might_be.length && !hq_might_be[next_stop_index]) {
+        //         next_stop_index++;
+        //     }
+        //     if(rc.getRoundNum() < 150
+        //         && !has_built_rush_design_school
+        //         && (
+        //             next_stop_index < hq_might_be.length
+        //             || opp_hq_loc != null
+        //         )
+        //     ) {
+        //         should_mine = false;
+        //         RobotInfo opp_hq = null;
+        //         for(RobotInfo rbt : getNearbyOpponentUnits()) {
+        //             if(rbt.type == RobotType.HQ) {
+        //                 opp_hq = rbt;
+        //             }
+        //         }
+        //         if(opp_hq == null) {
+        //             if(max_difference(rc.getLocation(), getWhereOppHqMightBe()[next_stop_index]) <= 1) {
+        //                 hq_might_be[next_stop_index] = false;
+        //             }
+        //         } else { // opp_hq != null
+        //             opp_hq_loc = opp_hq.location;
+        //             for(Direction dir : directions) {
+        //                 MapLocation build_loc = rc.getLocation().add(dir);
+        //                 if(1 == max_difference(build_loc, opp_hq_loc)
+        //                     && rc.isReady()
+        //                     && rc.canBuildRobot(RobotType.DESIGN_SCHOOL, dir)
+        //                 ) {
+        //                     rc.buildRobot(RobotType.DESIGN_SCHOOL, dir);
+        //                     has_built_rush_design_school = true;
+        //                 }
+        //             }
+        //         }
 
-                if(opp_hq_loc == null) {
-                    bugPathingStep(getWhereOppHqMightBe()[next_stop_index]);
-                } else {
-                    if(!wall_BFS_step(opp_hq_loc)) {
-                        if(Clock.getBytecodesLeft() > 3000) {
-                            bugPathingStep(opp_hq_loc);
-                        }
-                    }
-                }
-            } else {
-                should_mine = true;
-            }
+        //         if(opp_hq_loc == null) {
+        //             bugPathingStep(getWhereOppHqMightBe()[next_stop_index]);
+        //         } else {
+        //             if(!wall_BFS_step(opp_hq_loc)) {
+        //                 if(Clock.getBytecodesLeft() > 3000) {
+        //                     bugPathingStep(opp_hq_loc);
+        //                 }
+        //             }
+        //         }
+        //     } else {
+        //         should_mine = true;
+        //     }
         }
     
         if(should_mine) {
+
             buildRefineryIfApplicable();
-            for (Direction dir : directions)
+            
+            // move onto the soup so as not to block the view of other miners
+            if(0 == rc.getSoupCarrying()) {
+                moveOnTopOfSoupIfPossible();
+            }
+            
+            for (Direction dir : directions_including_center)
                 if(tryMine(dir)) {
                     where_i_found_soup = rc.adjacentLocation(dir);
                 }
@@ -214,6 +221,26 @@ public strictfp class Miner extends Unit {
                     System.out.println("I counted " + String.valueOf(amount_of_soup_nearby) + " soup so I built a refinery");
                     rc.buildRobot(RobotType.REFINERY, build_dir);
                     numBuildingsBuilt++;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    boolean moveOnTopOfSoupIfPossible() throws GameActionException {
+        if(rc.isReady()
+            && rc.canSenseLocation(rc.getLocation())
+            && 0 == rc.senseSoup(rc.getLocation())
+        ) {
+            for(Direction dir : directions) {
+                MapLocation l = rc.adjacentLocation(dir);
+                if(rc.canSenseLocation(l)
+                    && 0 < rc.senseSoup(l)
+                    && rc.canMove(dir)
+                    && canSafeMove(dir)
+                ) {
+                    rc.move(dir);
                     return true;
                 }
             }
