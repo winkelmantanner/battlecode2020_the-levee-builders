@@ -64,11 +64,53 @@ abstract public strictfp class Unit extends Robot {
 
 
 
+    enum HybridStatus {
+        WALL_BFS,
+        FUZZY,
+        BUG
+    }
+    HybridStatus hybrid_status = HybridStatus.WALL_BFS;
+    boolean hybridStep(final MapLocation dest) throws GameActionException {
+        return hybridStep(dest, false);
+    }  
+    boolean hybridStep(final MapLocation dest, final boolean can_move_to_below_water_level) throws GameActionException {
+        // includes randomness
+        boolean has_moved = false;
+        if(hybrid_status == HybridStatus.WALL_BFS) {
+            has_moved = wall_BFS_step(dest, can_move_to_below_water_level);
+            if(!has_moved) {
+                // System.out.println("falling back to fuzzy from BFS");
+                hybrid_status = HybridStatus.FUZZY;
+            }
+        }
+        if(hybrid_status == HybridStatus.FUZZY) {
+            has_moved = fuzzy_step(dest, can_move_to_below_water_level);
+            if(Math.random() < 0.75) {
+                // System.out.println("advancing to bfs from fuzzy " + dest.toString());
+                hybrid_status = HybridStatus.WALL_BFS;
+            }
+            if(!has_moved) {
+                // System.out.println("falling back to bug from fuzzy");
+                hybrid_status = HybridStatus.BUG;
+            }
+        }
+        if(hybrid_status == HybridStatus.BUG) {
+            has_moved = bugPathingStep(dest, can_move_to_below_water_level);
+            if(Math.random() < 0.05) {
+                // System.out.println("advancing to fuzzy from bug");
+                hybrid_status = HybridStatus.FUZZY;
+            }
+        }
+        return has_moved;
+    }
 
 
 
     HashMap<String, Integer> fuzzy_where_ive_been = new HashMap<String, Integer>();
     boolean fuzzy_step(final MapLocation dest) throws GameActionException {
+        return fuzzy_step(dest, false);
+    }
+    boolean fuzzy_step(final MapLocation dest, final boolean can_move_to_below_water_level) throws GameActionException {
         fuzzy_where_ive_been.put(rc.getLocation().toString(), rc.getRoundNum());
         final Direction target_dir = rc.getLocation().directionTo(dest);
         Direction dir = target_dir;
@@ -92,8 +134,9 @@ abstract public strictfp class Unit extends Robot {
             if(!fuzzy_where_ive_been.containsKey(key)
                 || fuzzy_where_ive_been.get(key) + 10 < rc.getRoundNum()
             ) {
-                has_moved = safeTryMove(dir);
+                has_moved = safeTryMove(dir, can_move_to_below_water_level);
             } else {
+                // System.out.println("fuzzy explorative block " + dir.toString());
                 // Don't get stuck in large cup shapes
                 stop = true;
             }
@@ -112,7 +155,7 @@ abstract public strictfp class Unit extends Robot {
             tryGoSomewhere();
             return true;
         } else {
-            return bugPathingStep(locOfHQ, true);
+            return hybridStep(locOfHQ, true);
         }
     }
 
@@ -306,10 +349,13 @@ abstract public strictfp class Unit extends Robot {
     }
 
     boolean safeTryMove(Direction dir) throws GameActionException {
+        return safeTryMove(dir, false);
+    }
+    boolean safeTryMove(Direction dir, final boolean can_move_to_below_water_level) throws GameActionException {
         // This func works for all unit types
         // Do not call if you are a building
         // VERY HIGH COMPLEXITY
-        if(canSafeMove(dir)) {
+        if(canSafeMove(dir, can_move_to_below_water_level)) {
             rc.move(dir);
             return true;
         }
@@ -387,12 +433,15 @@ abstract public strictfp class Unit extends Robot {
         return count_holder.soup_count;
     }
     boolean wall_BFS_step(MapLocation dest) throws GameActionException {
+        return wall_BFS_step(dest, false);
+    }
+    boolean wall_BFS_step(MapLocation dest, final boolean can_move_to_below_water_level) throws GameActionException {
         if(!rc.isReady() || !rc.canSenseLocation(dest)) {
             return false;
         }
         // System.out.println("I CAN OUTPUT STUFF");
         if(!wall_BFS_is_following_wall) {
-            wall_BFS_is_following_wall = !safeTryMove(rc.getLocation().directionTo(dest));
+            wall_BFS_is_following_wall = !safeTryMove(rc.getLocation().directionTo(dest), can_move_to_below_water_level);
         }
         if(wall_BFS_is_following_wall) {
 
@@ -411,7 +460,7 @@ abstract public strictfp class Unit extends Robot {
                 if(l == rc.getLocation()) {
                     Direction the_final_answer = rc.getLocation().directionTo(prev_l);
                     // System.out.println("THE FINAL ANSWER: " + the_final_answer.toString());
-                    if(canSafeMove(the_final_answer, true)) {
+                    if(canSafeMove(the_final_answer, can_move_to_below_water_level)) {
                         rc.move(the_final_answer);
                         // System.out.println("RETURNING TRUE");
 

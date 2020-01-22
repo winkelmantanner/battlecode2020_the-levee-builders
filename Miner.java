@@ -80,7 +80,7 @@ public strictfp class Miner extends Unit {
                     }
                 }
                 if(locOfHQ != null && Math.random() < 0.75) {
-                    bugPathingStep(locOfHQ);
+                    hybridStep(locOfHQ);
                 }
             }
         // } else if(roundNumCreated < 6) { // we are the second miner built
@@ -162,7 +162,7 @@ public strictfp class Miner extends Unit {
                     if(locOfRefinery == null) {
                         goToHQ();
                     } else if(Math.random() < 0.95) {
-                        bugPathingStep(locOfRefinery);
+                        hybridStep(locOfRefinery);
                     }
                 } else if(where_i_found_soup != null && rc.isReady()) { // rc.getSoupCarrying() == 0
                     if(num_rounds_going_to_where_i_found_soup < 15) {
