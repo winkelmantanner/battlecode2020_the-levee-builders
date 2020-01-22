@@ -98,6 +98,7 @@ public strictfp class Landscaper extends Unit {
             ) {
                 // dig through opp levee
                 // NOT TESTED AND PROBABLY DOESN'T WORK
+                System.out.println("Trying to dig through opp levee");
                 rc.digDirt(rc.getLocation().directionTo(opp_hq_loc));
             } else {
                 hybridStep(opp_hq_loc);
@@ -176,13 +177,11 @@ public strictfp class Landscaper extends Unit {
                 }
             }
             if(is_enemy_landscaper_adj_to_hq) {
-                System.out.println("ENEMY LANDSCAPER");
+                System.out.println("ENEMY LANDSCAPER; im carrying " + String.valueOf(rc.getDirtCarrying()) + " dirt");
             }
 
             // dig from the lowest adjacent tile that is not occupied by a robot
-            if(!is_enemy_landscaper_adj_to_hq
-                || rc.getDirtCarrying() < MAX_ELEVATION_STEP
-            ) {
+            if(rc.getDirtCarrying() < MAX_ELEVATION_STEP) {
                 digFromLowestAdjTile();
             }
 
@@ -212,7 +211,8 @@ public strictfp class Landscaper extends Unit {
                     //         }
                     //     }
                     // }
-                    if(elev_of_dir_we_can_deposit_adj_to_hq < min_elev + MAX_ELEVATION_STEP
+                    if((elev_of_dir_we_can_deposit_adj_to_hq < min_elev + MAX_ELEVATION_STEP
+                            || is_enemy_landscaper_adj_to_hq)
                         && tryDeposit(dir_we_can_deposit_adj_to_hq)
                     ) {
                         // rc.setIndicatorDot(rc.getLocation().add(dir_we_can_deposit_adj_to_hq), 0, 255, 0);
