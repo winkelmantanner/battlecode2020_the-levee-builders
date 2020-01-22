@@ -16,6 +16,7 @@ public strictfp class Landscaper extends Unit {
         rc = rbt_controller;
     }
 
+    int num_turns_unable_to_deposit_adj_to_hq = 0;
 
     boolean digFromLowestAdjTile() throws GameActionException {
         // digs from lowest adjacent tile not occupied by any robot except drone
@@ -212,6 +213,7 @@ public strictfp class Landscaper extends Unit {
             if(can_deposit_adj_to_hq
                 && rc.isReady()
             ) {
+                num_turns_unable_to_deposit_adj_to_hq = 0;
                 if(max_difference(locOfHQ, rc.getLocation()) == 1) {
                     // Direction dir_to_deposit = null;
                     // if(rc.canSenseLocation(rc.getLocation())
@@ -283,7 +285,20 @@ public strictfp class Landscaper extends Unit {
             //         }
             //     }
             // }
-            goToHQ();
+            if(rc.isReady()
+                && num_turns_unable_to_deposit_adj_to_hq < 30
+            ) {
+                num_turns_unable_to_deposit_adj_to_hq++;
+                goToHQ();
+            } else {
+                Direction d = randomDirection();
+                if(rc.canDepositDirt(d)
+                    && null == rc.senseRobotAtLocation(rc.adjacentLocation(d))
+                    && Math.random() < 0.5
+                ) {
+                    rc.depositDirt(d);
+                }
+            }
         }
         tryGoSomewhere();
     }
