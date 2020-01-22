@@ -19,10 +19,16 @@ public strictfp class DeliveryDrone extends Unit {
         rc = rbt_controller;
     }
 
+    int turn_i_was_1_from_hq = -12345;
 
 
     public void runTurn() throws GameActionException {
         updateLocOfHQ();
+        if(locOfHQ != null
+            && 1 == max_difference(rc.getLocation(), locOfHQ)
+        ) {
+            turn_i_was_1_from_hq = rc.getRoundNum();
+        }
         if(rc.isReady()) {
             for(Direction dir : directions) {
                 MapLocation ml = rc.getLocation().add(dir);
@@ -39,15 +45,25 @@ public strictfp class DeliveryDrone extends Unit {
                         carried_unit_info = rbt;
                         break;
                     } else if(
-                        Math.random() < 0.2
-                        && rbt != null
-                        && rbt.type == RobotType.MINER
+                        rbt != null
                         && rbt.team == rc.getTeam()
                         && locOfHQ != null
-                        && max_difference(
-                            rbt.location,
-                            locOfHQ
-                        ) == 1
+                        && (
+                            (rbt.type == RobotType.MINER
+                                && Math.random() < 0.2
+                                && max_difference(
+                                    rbt.location,
+                                    locOfHQ
+                                ) == 1
+                            )
+                            || (rbt.type == RobotType.LANDSCAPER
+                                && max_difference(
+                                    rbt.location,
+                                    locOfHQ
+                                ) >= 2
+                                && rc.getRoundNum() - turn_i_was_1_from_hq <= 10
+                            )
+                        )
                         && rc.canPickUpUnit(rbt.ID)
                     ) {
                         // pick up miners off the levee
@@ -57,31 +73,40 @@ public strictfp class DeliveryDrone extends Unit {
                     }
 
                     if(carried_unit_info != null
-                        && carried_unit_info.team != rc.getTeam()
                         && rc.isCurrentlyHoldingUnit()
-                        && rc.senseFlooding(ml)
                         && rc.canDropUnit(dir)
                     ) {
-                        // drop enemy units into water
-                        rc.dropUnit(dir);
-                        carried_unit_info = null;
-                        break;
-                    } else if(
-                        carried_unit_info != null
-                        && carried_unit_info.team == rc.getTeam()
-                        && rc.isCurrentlyHoldingUnit()
-                        && carried_unit_info.type == RobotType.MINER
-                    ) {
-                        // drop friendly units on safe ground
-                        Direction random_dir = randomDirection();
-                        MapLocation drop_loc = rc.getLocation().add(random_dir);
-                        if(rc.canDropUnit(random_dir)
+                        MapLocation drop_loc = rc.getLocation().add(dir);
+                        if(carried_unit_info.team != rc.getTeam()
+                            && rc.senseFlooding(ml)
+                        ) {
+                            // drop enemy units and cows into water
+                            rc.dropUnit(dir);
+                            carried_unit_info = null;
+                            break;
+                        } else if(
+                            carried_unit_info.team == rc.getTeam()
                             && rc.canSenseLocation(drop_loc)
+                            && (carried_unit_info.type == RobotType.MINER
+                                || rc.getRoundNum() - turn_i_was_1_from_hq >= 10 + (5 * max_difference(drop_loc, locOfHQ))
+                            )
                             && !rc.senseFlooding(drop_loc)
                             && rc.senseElevation(drop_loc) > 0
                             && rc.senseElevation(drop_loc) < 12 + GameConstants.getWaterLevel(rc.getRoundNum())
                         ) {
-                            rc.dropUnit(random_dir);
+                            // drop friendly miners and landscapers on safe ground
+                            // (only drop landscapers if we give up on droping on the levee)
+                            rc.dropUnit(dir);
+                            carried_unit_info = null;
+                            break;
+                        } else if(
+                            carried_unit_info.team == rc.getTeam()
+                            && carried_unit_info.type == RobotType.LANDSCAPER
+                            && locOfHQ != null
+                            && 1 == max_difference(drop_loc, locOfHQ)
+                        ) {
+                            // drop friendly landscapers on the levee
+                            rc.dropUnit(dir);
                             carried_unit_info = null;
                             break;
                         }
@@ -112,8 +137,10 @@ public strictfp class DeliveryDrone extends Unit {
 
             // Generally stay near the HQ
             if(locOfHQ == null
-              || rc.isCurrentlyHoldingUnit()
-              || Math.random() < 0.25
+                || (carried_unit_info != null
+                    && carried_unit_info.team != rc.getTeam()
+                )
+                || Math.random() < 0.25
             ) {
                 tryGoSomewhere();
             } else {
