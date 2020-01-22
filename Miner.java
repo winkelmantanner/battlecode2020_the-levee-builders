@@ -44,16 +44,26 @@ public strictfp class Miner extends Unit {
     public void runTurn() throws GameActionException {
         updateLocOfHQ();
         boolean should_mine = true;
-        if(roundNumCreated <= 2) { // we are the first miner built
-            if(rc.getTeamSoup() > (25 * numBuildingsBuilt) + RobotType.DESIGN_SCHOOL.cost) { // allow the scout miner to build design school
+        if(roundNumCreated <= 2 // we are the first miner built
+            || rc.getRoundNum() >= 1000 // its terraforming time
+        ) {
+            if(rc.getTeamSoup() > min(
+                (13 * (numBuildingsBuilt * numBuildingsBuilt))
+                    + RobotType.DESIGN_SCHOOL.cost
+                ,
+                RobotType.VAPORATOR.cost
+            )) {
                 should_mine = false;
                 Direction build_dir = null;
                 if(locOfHQ != null) {
                     for(Direction dir : directions) {
                         MapLocation ml = rc.adjacentLocation(dir);
                         int distance_squared_from_hq = ml.distanceSquaredTo(locOfHQ);
-                        if(distance_squared_from_hq + 5 < RobotType.DESIGN_SCHOOL.sensorRadiusSquared
-                            && max_difference(ml, locOfHQ) >= 3 - (((double)rc.getTeamSoup() - 200) / 150)
+                        if(buildSequenceIndex >= minerBuildSequence.length
+                            || (
+                                distance_squared_from_hq + 5 < RobotType.DESIGN_SCHOOL.sensorRadiusSquared
+                                && max_difference(ml, locOfHQ) >= 3 - (((double)rc.getTeamSoup() - 200) / 150)
+                            )
                         ) {
                             build_dir = dir;
                             break;
@@ -87,7 +97,7 @@ public strictfp class Miner extends Unit {
                     } else if(buildSequenceIndex < minerBuildSequence.length) {
                         type_to_build = minerBuildSequence[buildSequenceIndex];
                     } else {
-                        type_to_build = randomSpawnedByMiner();
+                        type_to_build = getTerraformingStageBuildingToBuild();
                     }
                     if(tryBuild(type_to_build, build_dir)) {
                         numBuildingsBuilt++;
@@ -100,7 +110,8 @@ public strictfp class Miner extends Unit {
                     hybridStep(locOfHQ);
                 }
             }
-        // } else if(roundNumCreated < 6) { // we are the second miner built
+        // } else if(roundNumCreated < 6) {
+        //     // we are the second miner built and its not terraforming time
         //     int next_stop_index = 0;
         //     while(next_stop_index < hq_might_be.length && !hq_might_be[next_stop_index]) {
         //         next_stop_index++;
