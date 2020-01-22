@@ -105,6 +105,21 @@ public strictfp class Landscaper extends Unit {
             }
         }
 
+        RobotInfo nearest_enemy_rusher = null;
+        for(RobotInfo rbt : rc.senseNearbyRobots(
+            rc.getType().sensorRadiusSquared,
+            rc.getTeam().opponent()
+        )) {
+            if(rbt != null
+                && (rbt.type == RobotType.LANDSCAPER
+                    || rbt.type == RobotType.MINER
+                )
+            ) {
+                nearest_enemy_rusher = rbt;
+                break;
+            }
+        }
+
         if(locOfHQ != null) {
             // get adjacent to HQ
             for(Direction dir : directions) {
@@ -212,15 +227,26 @@ public strictfp class Landscaper extends Unit {
                     //         }
                     //     }
                     // }
-                    if((elev_of_dir_we_can_deposit_adj_to_hq < min_elev + MAX_ELEVATION_STEP
-                            || is_enemy_landscaper_adj_to_hq)
+                    if(
+                        (
+                            (nearest_enemy_rusher != null
+                                && rc.getRoundNum() < 300
+                            )
+                            || ((locOfRefinery != null
+                                    || min_elev > MAX_ELEVATION_STEP + rc.senseElevation(locOfHQ)
+                                    || rc.getRoundNum() > 250
+                                )
+                                && elev_of_dir_we_can_deposit_adj_to_hq < min_elev + MAX_ELEVATION_STEP
+                            )
+                        )
                         && tryDeposit(dir_we_can_deposit_adj_to_hq)
                     ) {
                         // rc.setIndicatorDot(rc.getLocation().add(dir_we_can_deposit_adj_to_hq), 0, 255, 0);
                         // System.out.println("I deposited dirt " + rc.getLocation().add(dir_we_can_deposit_adj_to_hq).toString());
                     } else if(rc.getDirtCarrying() > 0) {
                         // System.out.println("I MOVED");
-                        hybridStep(min_elev_loc);
+                        fuzzy_clear();
+                        fuzzy_step(min_elev_loc);
                     }
                 } else if(max_difference(locOfHQ, rc.getLocation()) == 2) {
                     if(rc.canSenseLocation(rc.getLocation())
