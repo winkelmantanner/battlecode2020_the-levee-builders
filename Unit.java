@@ -121,6 +121,9 @@ abstract public strictfp class Unit extends Robot {
 
 
     HashMap<String, Integer> fuzzy_where_ive_been = new HashMap<String, Integer>();
+    void fuzzy_clear() throws GameActionException {
+        fuzzy_where_ive_been.clear();
+    }
     boolean fuzzy_step(final MapLocation dest) throws GameActionException {
         return fuzzy_step(dest, false);
     }
