@@ -28,7 +28,8 @@ public class DesignSchool extends Building {
                     MapLocation ml = rc.getLocation().add(dir);
                     if(max_difference(ml, locOfHQ) < dir_to_build_dist_from_hq) {
                         dir_to_build = dir;
-                        dir_to_build_dist_from_hq = max_difference(rc.getLocation().add(dir_to_build),
+                        dir_to_build_dist_from_hq = max_difference(
+                            rc.getLocation().add(dir_to_build),
                             locOfHQ
                         );
                     }
@@ -40,7 +41,8 @@ public class DesignSchool extends Building {
                     MapLocation ml = rc.getLocation().add(dir);
                     if(max_difference(ml, opp_hq_loc) < dir_to_build_dist_from_hq) {
                         dir_to_build = dir;
-                        dir_to_build_dist_from_hq = max_difference(rc.getLocation().add(dir_to_build),
+                        dir_to_build_dist_from_hq = max_difference(
+                            rc.getLocation().add(dir_to_build),
                             opp_hq_loc
                         );
                     }
