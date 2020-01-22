@@ -52,7 +52,37 @@ public strictfp class Landscaper extends Unit {
         return did_dig;
     }
 
-
+    class BuildingAdjacentData {
+        public int min_adj_elevation = 30000;
+        public MapLocation min_adj_elev_loc = null;
+        public boolean is_adj_to_enemy_landscaper = false;
+        BuildingAdjacentData(MapLocation loc_of_building, RobotController rc) throws GameActionException {
+            for(int dx = -1; dx <= 1; dx++) {
+                for(int dy = -1; dy <= 1; dy++) {
+                    MapLocation ml = loc_of_building.translate(dx, dy);
+                    if((dx != 0 || dy != 0)
+                        && rc.canSenseLocation(ml)
+                        && (!isIsolatedDueToMapEdge(ml, loc_of_building)
+                            || rc.senseFlooding(ml)
+                        )
+                    ) {
+                        int elev = rc.senseElevation(ml);
+                        if(elev < min_adj_elevation) {
+                            min_adj_elevation = elev;
+                            min_adj_elev_loc = ml;
+                        }
+                        RobotInfo rbt_at_loc = rc.senseRobotAtLocation(ml);
+                        if(rbt_at_loc != null
+                            && rbt_at_loc.team == rc.getTeam().opponent()
+                            && rbt_at_loc.type == RobotType.LANDSCAPER
+                        ) {
+                            is_adj_to_enemy_landscaper = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 
 
@@ -176,32 +206,9 @@ public strictfp class Landscaper extends Unit {
                 }
             }
             
-            int min_elev = 30000;
-            MapLocation min_elev_loc = null;
-            boolean is_enemy_landscaper_adj_to_hq = false;
-            for(int dx = -1; dx <= 1; dx++) {
-                for(int dy = -1; dy <= 1; dy++) {
-                    MapLocation ml = locOfHQ.translate(dx, dy);
-                    if((dx != 0 || dy != 0)
-                        && rc.canSenseLocation(ml)
-                        && !isIsolatedDueToMapEdge(ml, locOfHQ)
-                    ) {
-                        int elev = rc.senseElevation(ml);
-                        if(elev < min_elev) {
-                            min_elev = elev;
-                            min_elev_loc = ml;
-                        }
-                        RobotInfo rbt_at_loc = rc.senseRobotAtLocation(ml);
-                        if(rbt_at_loc != null
-                            && rbt_at_loc.team == rc.getTeam().opponent()
-                            && rbt_at_loc.type == RobotType.LANDSCAPER
-                        ) {
-                            is_enemy_landscaper_adj_to_hq = true;
-                        }
-                    }
-                }
-            }
-            if(is_enemy_landscaper_adj_to_hq) {
+            BuildingAdjacentData hq_adj_data = new BuildingAdjacentData(locOfHQ, rc);
+
+            if(hq_adj_data.is_adj_to_enemy_landscaper) {
                 System.out.println("ENEMY LANDSCAPER; im carrying " + String.valueOf(rc.getDirtCarrying()) + " dirt");
             }
 
@@ -217,7 +224,7 @@ public strictfp class Landscaper extends Unit {
                 if(max_difference(locOfHQ, rc.getLocation()) == 1) {
                     // Direction dir_to_deposit = null;
                     // if(rc.canSenseLocation(rc.getLocation())
-                    //     && min_elev >= rc.senseElevation(rc.getLocation())
+                    //     && hq_adj_data.min_adj_elevation >= rc.senseElevation(rc.getLocation())
                     //     && rc.canDepositDirt(Direction.CENTER)
                     // ) {
                     //     dir_to_deposit = Direction.CENTER;
@@ -228,8 +235,8 @@ public strictfp class Landscaper extends Unit {
                     //         if(isValid(l)
                     //             && max_difference(l, locOfHQ) == 1
                     //             && rc.canSenseLocation(l)
-                    //             && (rc.senseElevation(l) < min_elev + MAX_ELEVATION_STEP
-                    //                 || is_enemy_landscaper_adj_to_hq)
+                    //             && (rc.senseElevation(l) < hq_adj_data.min_adj_elevation + MAX_ELEVATION_STEP
+                    //                 || hq_adj_data.is_adj_to_enemy_landscaper)
                     //             && rc.senseElevation(l) < yet_another_min_elev
                     //         ) {
                     //             dir_to_deposit = dir;
@@ -243,10 +250,10 @@ public strictfp class Landscaper extends Unit {
                                 && rc.getRoundNum() < 300
                             )
                             || ((locOfRefinery != null
-                                    || min_elev > MAX_ELEVATION_STEP + rc.senseElevation(locOfHQ)
+                                    || hq_adj_data.min_adj_elevation > MAX_ELEVATION_STEP + rc.senseElevation(locOfHQ)
                                     || rc.getRoundNum() > 250
                                 )
-                                && elev_of_dir_we_can_deposit_adj_to_hq < min_elev + MAX_ELEVATION_STEP
+                                && elev_of_dir_we_can_deposit_adj_to_hq < hq_adj_data.min_adj_elevation + MAX_ELEVATION_STEP
                             )
                         )
                         && tryDeposit(dir_we_can_deposit_adj_to_hq)
@@ -258,12 +265,12 @@ public strictfp class Landscaper extends Unit {
                         if(Math.random() < 0.5) {
                             fuzzy_clear();
                         }
-                        fuzzy_step(min_elev_loc);
+                        fuzzy_step(hq_adj_data.min_adj_elev_loc);
                     }
                 } else if(max_difference(locOfHQ, rc.getLocation()) == 2) {
                     if(rc.canSenseLocation(rc.getLocation())
                         && rc.senseElevation(rc.getLocation()) < 200
-                        && rc.senseElevation(rc.getLocation()) <= min_elev
+                        && rc.senseElevation(rc.getLocation()) <= hq_adj_data.min_adj_elevation
                     ) {
                         // we know we have dirt since can_deposit_adj_to_hq
                         rc.depositDirt(Direction.CENTER);
@@ -308,13 +315,13 @@ public strictfp class Landscaper extends Unit {
 
     boolean isIsolatedDueToMapEdge(
         final MapLocation location_of_interest,
-        final MapLocation location_of_hq
+        final MapLocation location_of_building
     ) {
         boolean is_isolated = true;
         for(Direction d : directions) {
             MapLocation adj = location_of_interest.add(d);
             if(rc.onTheMap(adj)
-                && max_difference(adj, location_of_hq) >= 2
+                && max_difference(adj, location_of_building) >= 2
             ) {
                 is_isolated = false;
                 break;

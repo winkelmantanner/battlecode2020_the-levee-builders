@@ -101,7 +101,9 @@ public strictfp class Miner extends Unit {
                     }
                     if(tryBuild(type_to_build, build_dir)) {
                         numBuildingsBuilt++;
-                        if(minerBuildSequence[buildSequenceIndex] == type_to_build) {
+                        if(buildSequenceIndex < minerBuildSequence.length
+                            && minerBuildSequence[buildSequenceIndex] == type_to_build
+                        ) {
                             buildSequenceIndex++;
                         }
                     }
