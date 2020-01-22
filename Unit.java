@@ -320,12 +320,17 @@ abstract public strictfp class Unit extends Robot {
             case DELIVERY_DRONE:
                 for(RobotInfo rbt : rc.senseNearbyRobots()) {
                     if(rbt.team == rc.getTeam().opponent()
-                    && rbt.type.canShoot()
-                    && rbt.cooldownTurns < 2
-                    && loc.isWithinDistanceSquared(
-                        rbt.location,
-                        GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED
-                    )) {
+                        && rbt.type.canShoot()
+                        && rbt.cooldownTurns < 2
+                        && loc.isWithinDistanceSquared(
+                            rbt.location,
+                            GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED
+                        )
+                        && !rc.getLocation().isWithinDistanceSquared(
+                            rbt.location,
+                            GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED
+                        )
+                    ) {
                         is_safe_from_enemy_robots = false;
                     }
                 }
@@ -342,7 +347,7 @@ abstract public strictfp class Unit extends Robot {
                 );
                 for(RobotInfo rbt : getNearbyOpponentUnits()) {
                     if(rbt.type == RobotType.DELIVERY_DRONE
-                        && rbt.cooldownTurns < 2
+                        && rbt.cooldownTurns < 4
                         && max_difference(loc, rbt.location) <= 2
                         && max_difference(rc.getLocation(), rbt.location) > max_difference(loc, rbt.location)
                     ) {
