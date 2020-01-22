@@ -19,7 +19,7 @@ abstract public strictfp class Unit extends Robot {
     RobotInfo carried_unit_info = null;
 
 
-
+    final int PIT_MAX_ELEVATION = -10;
 
 
     Direction current_dir = null;
@@ -199,7 +199,7 @@ abstract public strictfp class Unit extends Robot {
 
     
 
-    enum X{WATER, SOUP;};
+    enum X{WATER, SOUP, WATER_OR_PIT;};
     boolean tryMoveToward(X x) throws GameActionException {
         boolean found = false;
         if(rc.isReady()) {
@@ -225,6 +225,15 @@ abstract public strictfp class Unit extends Robot {
                         }
                         last_elevation = rc.senseElevation(ml);
                         switch(x) {
+                            case WATER_OR_PIT:
+                                if(rc.senseElevation(ml) <= PIT_MAX_ELEVATION
+                                    && rc.canMove(dir)
+                                ) {
+                                    current_dir = dir;
+                                    found = true;
+                                    stop = true;
+                                }
+                                // break intentionally omitted
                             case WATER:
                                 if(rc.senseFlooding(ml) && rc.canMove(dir)) {
                                     current_dir = dir;
