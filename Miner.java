@@ -53,7 +53,7 @@ public strictfp class Miner extends Unit {
                         MapLocation ml = rc.adjacentLocation(dir);
                         int distance_squared_from_hq = ml.distanceSquaredTo(locOfHQ);
                         if(distance_squared_from_hq < RobotType.DESIGN_SCHOOL.sensorRadiusSquared
-                            && distance_squared_from_hq >= 3 - (((double)rc.getTeamSoup() - 200) / 150)
+                            && max_difference(ml, locOfHQ) >= 3 - (((double)rc.getTeamSoup() - 200) / 150)
                         ) {
                             build_dir = dir;
                             break;
