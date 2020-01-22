@@ -100,7 +100,7 @@ public strictfp class Landscaper extends Unit {
                 // NOT TESTED AND PROBABLY DOESN'T WORK
                 rc.digDirt(rc.getLocation().directionTo(opp_hq_loc));
             } else {
-                bugPathingStep(opp_hq_loc);
+                hybridStep(opp_hq_loc);
             }
         }
 
@@ -219,7 +219,7 @@ public strictfp class Landscaper extends Unit {
                         // System.out.println("I deposited dirt " + rc.getLocation().add(dir_we_can_deposit_adj_to_hq).toString());
                     } else if(rc.getDirtCarrying() > 0) {
                         // System.out.println("I MOVED");
-                        bugPathingStep(min_elev_loc);
+                        hybridStep(min_elev_loc);
                     }
                 } else if(max_difference(locOfHQ, rc.getLocation()) == 2) {
                     if(rc.canSenseLocation(rc.getLocation())

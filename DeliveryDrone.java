@@ -104,7 +104,7 @@ public strictfp class DeliveryDrone extends Unit {
                     ) {
                         // move toward enemy units if not carrying anythin
                         if(Math.random() < 0.95) {
-                            bugPathingStep(rbt.location);
+                            hybridStep(rbt.location);
                         }
                     }
                 }
@@ -117,7 +117,7 @@ public strictfp class DeliveryDrone extends Unit {
             ) {
                 tryGoSomewhere();
             } else {
-                bugPathingStep(locOfHQ);
+                hybridStep(locOfHQ);
             }
         }
     }
