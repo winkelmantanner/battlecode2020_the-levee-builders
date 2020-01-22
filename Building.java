@@ -22,7 +22,7 @@ abstract public strictfp class Building extends Robot {
 
 
 
-    final int NUM_MINERS_TO_BUILD_INITIALLY = 4; // used by HQ
+    final int NUM_MINERS_TO_BUILD_INITIALLY = 2; // used by HQ
     final int TURN_TO_BUILD_ANOTHER_MINER = 150; // used by HQ
     int num_miners_built = 0; // used by HQ
 
