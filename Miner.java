@@ -28,6 +28,8 @@ public strictfp class Miner extends Unit {
         RobotType.NET_GUN,
         RobotType.DESIGN_SCHOOL
     };
+    // the following integers must both be kept accurate
+    int buildSequenceIndex = 0;
     int numBuildingsBuilt = 0;
 
     MapLocation where_i_found_soup = null;
@@ -70,13 +72,16 @@ public strictfp class Miner extends Unit {
                     }
                     if(should_build_refinery) {
                         type_to_build = RobotType.REFINERY;
-                    } else if(numBuildingsBuilt < minerBuildSequence.length) {
-                        type_to_build = minerBuildSequence[numBuildingsBuilt];
+                    } else if(buildSequenceIndex < minerBuildSequence.length) {
+                        type_to_build = minerBuildSequence[buildSequenceIndex];
                     } else {
                         type_to_build = randomSpawnedByMiner();
                     }
                     if(tryBuild(type_to_build, build_dir)) {
                         numBuildingsBuilt++;
+                        if(minerBuildSequence[buildSequenceIndex] == type_to_build) {
+                            buildSequenceIndex++;
+                        }
                     }
                 }
                 if(locOfHQ != null && Math.random() < 0.75) {
