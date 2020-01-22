@@ -39,6 +39,8 @@ public strictfp class DeliveryDrone extends Unit {
                     if(rbt != null
                         && rbt.team != rc.getTeam()
                         && rc.canPickUpUnit(rbt.ID)
+                        && rc.canSenseLocation(rbt.location)
+                        && rc.senseElevation(rbt.location) > PIT_MAX_ELEVATION
                     ) {
                         // pick up any enemy unit
                         rc.pickUpUnit(rbt.ID);
@@ -78,7 +80,11 @@ public strictfp class DeliveryDrone extends Unit {
                     ) {
                         MapLocation drop_loc = rc.getLocation().add(dir);
                         if(carried_unit_info.team != rc.getTeam()
-                            && rc.senseFlooding(ml)
+                            && (rc.senseFlooding(ml)
+                                || (rc.senseElevation(ml) <= PIT_MAX_ELEVATION
+                                        && carried_unit_info.type != RobotType.COW
+                                    )
+                            )
                         ) {
                             // drop enemy units and cows into water
                             rc.dropUnit(dir);
@@ -119,13 +125,19 @@ public strictfp class DeliveryDrone extends Unit {
                 && rc.isCurrentlyHoldingUnit()
             ) {
                 // move toward water if carrying enemy unit
-                tryMoveToward(X.WATER);
+                tryMoveToward(
+                    RobotType.COW == carried_unit_info.type
+                    ? X.WATER
+                    : X.WATER_OR_PIT
+                );
             }
 
             if(!rc.isCurrentlyHoldingUnit()) {
                 for(RobotInfo rbt : getNearbyOpponentUnits()) {
                     if(rbt.team != rc.getTeam()
                       && rbt.type.canBePickedUp()
+                      && rc.canSenseLocation(rbt.location)
+                      && rc.senseElevation(rbt.location) > PIT_MAX_ELEVATION
                     ) {
                         // move toward enemy units if not carrying anythin
                         if(Math.random() < 0.95) {
