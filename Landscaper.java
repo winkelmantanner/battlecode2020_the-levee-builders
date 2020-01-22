@@ -89,8 +89,16 @@ public strictfp class Landscaper extends Unit {
             MapLocation target_tile = rc.getLocation().add(rc.getLocation().directionTo(opp_hq_loc));
             
             if(rc.getDirtCarrying() <= 0) {
-                // dig from lowest adjacent file that is not occupied
-                digFromLowestAdjTile();
+                // get some dirt
+                if(locOfHQ == null
+                    || !locOfHQ.equals(rc.adjacentLocation(rc.getLocation().directionTo(locOfHQ)))
+                    || !rc.canDigDirt(rc.getLocation().directionTo(locOfHQ))
+                ) {
+                    // dig from lowest adjacent file that is not occupied
+                    digFromLowestAdjTile();
+                } else {
+                    rc.digDirt(rc.getLocation().directionTo(locOfHQ));
+                }
             } else if(rc.canSenseLocation(target_tile)
                 && rc.senseElevation(target_tile) - rc.senseElevation(rc.getLocation()) > 3
                 && max_difference(target_tile, opp_hq_loc) == 1
