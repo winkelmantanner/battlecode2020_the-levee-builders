@@ -342,8 +342,9 @@ abstract public strictfp class Unit extends Robot {
                 );
                 for(RobotInfo rbt : getNearbyOpponentUnits()) {
                     if(rbt.type == RobotType.DELIVERY_DRONE
-                    && max_difference(loc, rbt.location) <= 2
-                    && max_difference(rc.getLocation(), rbt.location) > 2
+                        && rbt.cooldownTurns < 2
+                        && max_difference(loc, rbt.location) <= 2
+                        && max_difference(rc.getLocation(), rbt.location) > max_difference(loc, rbt.location)
                     ) {
                         is_safe_from_enemy_robots = false;
                     }
