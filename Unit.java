@@ -621,12 +621,14 @@ abstract public strictfp class Unit extends Robot {
     }
     boolean bugSafeTryMove(Direction dir, final boolean can_move_to_below_water_level) throws GameActionException {
         String k = rc.getLocation().toString();
-        if(bugCanSafeMove(dir, can_move_to_below_water_level)) {
+        if(bugCanSafeMove(dir, can_move_to_below_water_level)
+            && rc.canMove(dir) // makes it less likely to have exceptions
+        ) {
+            rc.move(dir);
             if(!where_ive_been.containsKey(k)) {
                 where_ive_been.put(k, new ArrayList<Direction>());
             }
             where_ive_been.get(k).add(dir);
-            rc.move(dir);
             return true;
         } else {
             return false;
