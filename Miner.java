@@ -47,10 +47,22 @@ public strictfp class Miner extends Unit {
         if(roundNumCreated <= 2) { // we are the first miner built
             if(rc.getTeamSoup() > (25 * numBuildingsBuilt) + RobotType.DESIGN_SCHOOL.cost) { // allow the scout miner to build design school
                 should_mine = false;
-                Direction build_dir = randomDirection();
-                MapLocation build_loc = rc.getLocation().add(build_dir);
-                if(max_difference(locOfHQ, build_loc) == 3) {
+                Direction build_dir = null;
+                if(locOfHQ != null) {
+                    for(Direction dir : directions) {
+                        MapLocation ml = rc.adjacentLocation(dir);
+                        int distance_squared_from_hq = ml.distanceSquaredTo(locOfHQ);
+                        if(distance_squared_from_hq < RobotType.DESIGN_SCHOOL.sensorRadiusSquared
+                            && distance_squared_from_hq >= 3 - (((double)rc.getTeamSoup() - 200) / 150)
+                        ) {
+                            build_dir = dir;
+                            break;
+                        }
+                    }
+                }
+                if(build_dir != null) {
                     // only one miner should build so that we can control what is built
+                    MapLocation build_loc = rc.adjacentLocation(build_dir);
                     RobotType type_to_build = null;
                     boolean should_build_refinery = false;
                     if(null == locOfRefinery) {
