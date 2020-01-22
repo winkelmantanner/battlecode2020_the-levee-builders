@@ -144,6 +144,7 @@ public strictfp class Landscaper extends Unit {
                   && max_difference(l, locOfHQ) == 1
                   && rc.canSenseLocation(l)
                   && rc.senseElevation(l) < elev_of_dir_we_can_deposit_adj_to_hq
+                  && !isIsolatedDueToMapEdge(l, locOfHQ)
                 ) {
                     can_deposit_adj_to_hq = true;
                     dir_we_can_deposit_adj_to_hq = dir;
@@ -246,9 +247,7 @@ public strictfp class Landscaper extends Unit {
             //         }
             //     }
             // }
-            if(rc.getDirtCarrying() >= RobotType.LANDSCAPER.dirtLimit) {
-                goToHQ();
-            }
+            goToHQ();
         }
         tryGoSomewhere();
     }
