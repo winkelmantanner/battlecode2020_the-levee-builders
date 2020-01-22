@@ -70,37 +70,51 @@ abstract public strictfp class Unit extends Robot {
         BUG
     }
     HybridStatus hybrid_status = HybridStatus.WALL_BFS;
+    MapLocation prev_hybrid_dest = null;
+    MapLocation prev_hybrid_loc = null;
     boolean hybridStep(final MapLocation dest) throws GameActionException {
         return hybridStep(dest, false);
     }  
     boolean hybridStep(final MapLocation dest, final boolean can_move_to_below_water_level) throws GameActionException {
         // includes randomness
+        if(prev_hybrid_dest != dest
+            || prev_hybrid_loc != rc.getLocation()
+        ) {
+            hybrid_status = HybridStatus.WALL_BFS;
+            // System.out.println("resetting to BFS dest:" + dest.toString());
+            prev_hybrid_dest = dest;
+        }
         boolean has_moved = false;
-        if(hybrid_status == HybridStatus.WALL_BFS) {
-            has_moved = wall_BFS_step(dest, can_move_to_below_water_level);
-            if(!has_moved) {
-                // System.out.println("falling back to fuzzy from BFS");
-                hybrid_status = HybridStatus.FUZZY;
+        if(rc.isReady()) {
+            if(hybrid_status == HybridStatus.WALL_BFS) {
+                has_moved = wall_BFS_step(dest, can_move_to_below_water_level);
+                if(!has_moved) {
+                    // System.out.println("falling back to fuzzy from BFS dest:" + dest.toString());
+                    hybrid_status = HybridStatus.FUZZY;
+                }
             }
+            if(hybrid_status == HybridStatus.FUZZY) {
+                has_moved = fuzzy_step(dest, can_move_to_below_water_level);
+                if(!has_moved) {
+                    // System.out.println("falling back to bug from fuzzy dest:" + dest.toString());
+                    hybrid_status = HybridStatus.BUG;
+                } else if(Math.random() < 0.75) {
+                    // System.out.println("advancing to bfs from fuzzy dest:" + dest.toString());
+                    hybrid_status = HybridStatus.WALL_BFS;
+                }
+            }
+            if(hybrid_status == HybridStatus.BUG) {
+                has_moved = bugPathingStep(dest, can_move_to_below_water_level);
+                if(Math.random() < 0.05) {
+                    // System.out.println("advancing to fuzzy from bug dest:" + dest.toString());
+                    hybrid_status = HybridStatus.FUZZY;
+                }
+            }
+            // if(rc.isReady()) {
+            //     System.out.println("DIDN'T MOVE");
+            // }
         }
-        if(hybrid_status == HybridStatus.FUZZY) {
-            has_moved = fuzzy_step(dest, can_move_to_below_water_level);
-            if(Math.random() < 0.75) {
-                // System.out.println("advancing to bfs from fuzzy " + dest.toString());
-                hybrid_status = HybridStatus.WALL_BFS;
-            }
-            if(!has_moved) {
-                // System.out.println("falling back to bug from fuzzy");
-                hybrid_status = HybridStatus.BUG;
-            }
-        }
-        if(hybrid_status == HybridStatus.BUG) {
-            has_moved = bugPathingStep(dest, can_move_to_below_water_level);
-            if(Math.random() < 0.05) {
-                // System.out.println("advancing to fuzzy from bug");
-                hybrid_status = HybridStatus.FUZZY;
-            }
-        }
+        prev_hybrid_loc = rc.getLocation();
         return has_moved;
     }
 
