@@ -253,7 +253,9 @@ public strictfp class Landscaper extends Unit {
                         // System.out.println("I deposited dirt " + rc.getLocation().add(dir_we_can_deposit_adj_to_hq).toString());
                     } else if(rc.getDirtCarrying() > 0) {
                         // System.out.println("I MOVED");
-                        fuzzy_clear();
+                        if(Math.random() < 0.5) {
+                            fuzzy_clear();
+                        }
                         fuzzy_step(min_elev_loc);
                     }
                 } else if(max_difference(locOfHQ, rc.getLocation()) == 2) {
