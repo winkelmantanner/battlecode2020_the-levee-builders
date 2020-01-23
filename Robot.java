@@ -95,6 +95,9 @@ abstract public strictfp class Robot {
                     locOfHQ = rbt.location;
                 }
             }
+            if(locOfHQ == null) {
+                readHqLoc();
+            }
         }
         if(opp_hq_loc == null) {
             for(RobotInfo rbt : getNearbyOpponentUnits()) {
@@ -210,7 +213,8 @@ abstract public strictfp class Robot {
     }
 
     enum MessageType {
-        LOC_OF_REFINERY(1);
+        LOC_OF_REFINERY(1),
+        LOC_OF_HQ(2);
 
         private final int value;
 
@@ -237,6 +241,36 @@ abstract public strictfp class Robot {
             }
         }
         return message_was_posted;
+    }
+
+    boolean tryPostMyLocAsHqLoc() throws GameActionException {
+        // to be called by HQ only!
+        int [] six_ints = {
+            MessageType.LOC_OF_HQ.getValue(),
+            rc.getMapWidth() - rc.getLocation().x - 1,
+            rc.getLocation().y,
+            rc.getLocation().x, // [3]
+            rc.getLocation().y, // [4]
+            (int)(Math.random() * rc.getMapHeight())
+        };
+        return tryPostMessage(six_ints, 5);
+    }
+    int last_round_num_searched_for_hq = 0; // note that round nums must be positive
+    void readHqLoc() throws GameActionException {
+        while(locOfHQ == null
+            && Clock.getBytecodesLeft() > 2000
+            && last_round_num_searched_for_hq < rc.getRoundNum()
+        ) {
+            last_round_num_searched_for_hq++;
+            for(int [] my_message : getMyMessages(last_round_num_searched_for_hq)) {
+                if(my_message[0] == MessageType.LOC_OF_HQ.getValue()) {
+                    locOfHQ = new MapLocation(
+                        my_message[3],
+                        my_message[4]
+                    );
+                }
+            }
+        }
     }
 
     int[][] getMyMessages(final int roundNumber) throws GameActionException {

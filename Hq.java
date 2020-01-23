@@ -15,6 +15,8 @@ public strictfp class Hq extends Building {
         this.rc = rc;
     }
 
+    boolean has_communicated_location = false;
+
     // we store where we found soup because the senseNearbySoup function is unreliable
     Direction preferred_dir = null;
     int preferred_dir_round_num = -1234;
@@ -49,6 +51,9 @@ public strictfp class Hq extends Building {
                 if(tryBuild(RobotType.MINER, dir)) {
                     num_miners_built++;
                 }
+        }
+        if(!has_communicated_location) {
+            has_communicated_location = tryPostMyLocAsHqLoc();
         }
         shootOpponentDroneIfPossible();
         tryToConfuseOpponentWithBlockchain();
