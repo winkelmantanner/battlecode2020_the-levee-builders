@@ -179,7 +179,11 @@ abstract public strictfp class Robot {
      * @throws GameActionException
      */
     boolean tryBuild(RobotType type, Direction dir) throws GameActionException {
-        if (rc.isReady() && rc.canBuildRobot(type, dir)) {
+        if (type != null
+            && dir != null
+            && rc.isReady()
+            && rc.canBuildRobot(type, dir)
+        ) {
             rc.buildRobot(type, dir);
             return true;
         } else
