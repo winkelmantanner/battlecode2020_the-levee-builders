@@ -75,8 +75,7 @@ public strictfp class Miner extends Unit {
                 type_to_build = getTerraformingStageBuildingToBuild();
             }
             Direction build_dir = null;
-            if(rc.getRoundNum() >= 13 + roundNumOfLastBuild
-                && rc.getTeamSoup() > max(
+            if(rc.getTeamSoup() > max(
                     type_to_build.cost
                     ,
                     min(
