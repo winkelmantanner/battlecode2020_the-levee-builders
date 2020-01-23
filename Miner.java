@@ -45,16 +45,46 @@ public strictfp class Miner extends Unit {
         updateLocOfHQ();
         boolean should_mine = true;
         if(roundNumCreated <= 2 // we are the first miner built
-            || rc.getRoundNum() >= 1000 // its terraforming time
+            || rc.getRoundNum() >= 1000 // or its terraforming time
         ) {
-            if(rc.getTeamSoup() > min(
-                (25 * (numBuildingsBuilt * numBuildingsBuilt))
-                    + RobotType.DESIGN_SCHOOL.cost
+            RobotType type_to_build = null;
+            boolean should_build_refinery = false;
+            if(null == locOfRefinery) {
+                boolean friendly_landscaper_adj_to_hq = false;
+                boolean enemy_landscaper_adj_to_hq = false;
+                for(RobotInfo rbt : rc.senseNearbyRobots()) {
+                    if(rbt != null
+                        && rbt.type == RobotType.LANDSCAPER
+                        && 1 == max_difference(rbt.location, locOfHQ)
+                    ) {
+                        if(rbt.team == rc.getTeam()) {
+                            friendly_landscaper_adj_to_hq = true;
+                        } else {
+                            enemy_landscaper_adj_to_hq = true;
+                        }
+                    }
+                }
+                should_build_refinery = friendly_landscaper_adj_to_hq;
+            }
+            if(should_build_refinery) {
+                type_to_build = RobotType.REFINERY;
+            } else if(buildSequenceIndex < minerBuildSequence.length) {
+                type_to_build = minerBuildSequence[buildSequenceIndex];
+            } else {
+                type_to_build = getTerraformingStageBuildingToBuild();
+            }
+            Direction build_dir = null;
+            if(rc.getTeamSoup() > max(
+                type_to_build.cost
                 ,
-                RobotType.VAPORATOR.cost
+                min(
+                    (25 * (numBuildingsBuilt * numBuildingsBuilt))
+                        + RobotType.DESIGN_SCHOOL.cost
+                    ,
+                    RobotType.VAPORATOR.cost
+                )
             )) {
                 should_mine = false;
-                Direction build_dir = null;
                 if(locOfHQ != null) {
                     for(Direction dir : directions) {
                         MapLocation ml = rc.adjacentLocation(dir);
@@ -62,7 +92,7 @@ public strictfp class Miner extends Unit {
                         if(buildSequenceIndex >= minerBuildSequence.length
                             || (
                                 distance_squared_from_hq + 5 < RobotType.DESIGN_SCHOOL.sensorRadiusSquared
-                                && max_difference(ml, locOfHQ) >= 3 - (((double)rc.getTeamSoup() - 200) / 150)
+                                && max_difference(ml, locOfHQ) >= 3 - (((double)rc.getTeamSoup() - type_to_build.cost) / 200)
                             )
                         ) {
                             build_dir = dir;
@@ -71,27 +101,7 @@ public strictfp class Miner extends Unit {
                     }
                 }
                 if(build_dir != null) {
-                    // only one miner should build so that we can control what is built
                     MapLocation build_loc = rc.adjacentLocation(build_dir);
-                    RobotType type_to_build = null;
-                    boolean should_build_refinery = false;
-                    if(null == locOfRefinery) {
-                        boolean friendly_landscaper_adj_to_hq = false;
-                        boolean enemy_landscaper_adj_to_hq = false;
-                        for(RobotInfo rbt : rc.senseNearbyRobots()) {
-                            if(rbt != null
-                                && rbt.type == RobotType.LANDSCAPER
-                                && 1 == max_difference(rbt.location, locOfHQ)
-                            ) {
-                                if(rbt.team == rc.getTeam()) {
-                                    friendly_landscaper_adj_to_hq = true;
-                                } else {
-                                    enemy_landscaper_adj_to_hq = true;
-                                }
-                            }
-                        }
-                        should_build_refinery = friendly_landscaper_adj_to_hq;
-                    }
                     if(should_build_refinery) {
                         type_to_build = RobotType.REFINERY;
                     } else if(buildSequenceIndex < minerBuildSequence.length) {
