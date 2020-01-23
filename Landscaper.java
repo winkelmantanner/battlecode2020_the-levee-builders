@@ -16,9 +16,14 @@ public strictfp class Landscaper extends Unit {
         rc = rbt_controller;
     }
 
+    final int NUM_TURNS_WITHOUT_HQ_ACCESS_BEFORE_TERRAFORMING = 20;
+
     int num_turns_unable_to_deposit_adj_to_hq = 0;
 
     boolean digFromLowestAdjTile() throws GameActionException {
+        return digFromLowestAdjTile(true);
+    }
+    boolean digFromLowestAdjTile(final boolean can_dig_adj_to_buildings) throws GameActionException {
         // digs from lowest adjacent tile not occupied by any robot except drone
         boolean did_dig = false;
         // find direction to lowest adjacent tile that we can dig
@@ -38,8 +43,25 @@ public strictfp class Landscaper extends Unit {
                         || rbt_at_l.type == RobotType.DELIVERY_DRONE)
                     && rc.senseElevation(l) < min_diggable_elev
                 ) {
-                    lowest_unoccupied_dir = dir;
-                    min_diggable_elev = rc.senseElevation(l);
+                    boolean l_is_adj_to_buildings = false;
+                    if(!can_dig_adj_to_buildings) {
+                        for(RobotInfo rbt : rc.senseNearbyRobots(
+                            l,
+                            2*2,
+                            rc.getTeam()
+                        )) {
+                            if(!rbt.type.canMove()) {
+                                l_is_adj_to_buildings = true;
+                                break;
+                            }
+                        }
+                    }
+                    if(can_dig_adj_to_buildings
+                        || !l_is_adj_to_buildings
+                    ) {
+                        lowest_unoccupied_dir = dir;
+                        min_diggable_elev = rc.senseElevation(l);
+                    }
                 }
             }
         }
@@ -57,6 +79,9 @@ public strictfp class Landscaper extends Unit {
         public MapLocation min_adj_elev_loc = null;
         public boolean is_adj_to_enemy_landscaper = false;
         BuildingAdjacentData(MapLocation loc_of_building, RobotController rc) throws GameActionException {
+            this(loc_of_building, rc, true);
+        }
+        BuildingAdjacentData(MapLocation loc_of_building, RobotController rc, final boolean include_tiles_with_buildings) throws GameActionException {
             for(int dx = -1; dx <= 1; dx++) {
                 for(int dy = -1; dy <= 1; dy++) {
                     MapLocation ml = loc_of_building.translate(dx, dy);
@@ -64,6 +89,9 @@ public strictfp class Landscaper extends Unit {
                         && rc.canSenseLocation(ml)
                         && (!isIsolatedDueToMapEdge(ml, loc_of_building)
                             || rc.senseFlooding(ml)
+                        )
+                        && (include_tiles_with_buildings
+                            || canSafeDepositUnderRobot(rc.senseRobotAtLocation(ml))
                         )
                     ) {
                         int elev = rc.senseElevation(ml);
@@ -159,6 +187,12 @@ public strictfp class Landscaper extends Unit {
             }
         }
 
+
+        // dig from the lowest adjacent tile that is not occupied by a robot
+        if(rc.getDirtCarrying() < MAX_ELEVATION_STEP) {
+            digFromLowestAdjTile(num_turns_unable_to_deposit_adj_to_hq < NUM_TURNS_WITHOUT_HQ_ACCESS_BEFORE_TERRAFORMING);
+        }
+
         if(locOfHQ != null) {
             // get adjacent to HQ
             for(Direction dir : directions) {
@@ -210,11 +244,6 @@ public strictfp class Landscaper extends Unit {
 
             if(hq_adj_data.is_adj_to_enemy_landscaper) {
                 System.out.println("ENEMY LANDSCAPER; im carrying " + String.valueOf(rc.getDirtCarrying()) + " dirt");
-            }
-
-            // dig from the lowest adjacent tile that is not occupied by a robot
-            if(rc.getDirtCarrying() < MAX_ELEVATION_STEP) {
-                digFromLowestAdjTile();
             }
 
             if(can_deposit_adj_to_hq
@@ -293,21 +322,78 @@ public strictfp class Landscaper extends Unit {
             //     }
             // }
             if(rc.isReady()
-                && num_turns_unable_to_deposit_adj_to_hq < 30
+                && num_turns_unable_to_deposit_adj_to_hq < NUM_TURNS_WITHOUT_HQ_ACCESS_BEFORE_TERRAFORMING
             ) {
                 num_turns_unable_to_deposit_adj_to_hq++;
                 goToHQ();
-            } else {
-                Direction d = randomDirection();
-                if(rc.canDepositDirt(d)
-                    && null == rc.senseRobotAtLocation(rc.adjacentLocation(d))
-                    && Math.random() < 0.5
-                ) {
-                    rc.depositDirt(d);
+            } else if(rc.isReady()) {
+                if(rc.getDirtCarrying() > 0) {
+                    for(Direction dir : directions) {
+                        MapLocation ml = rc.adjacentLocation(dir);
+                        if(rc.canSenseLocation(ml)) {
+                            RobotInfo rbt_at_dir = rc.senseRobotAtLocation(ml);
+                            if(rbt_at_dir != null
+                                && rbt_at_dir.team == rc.getTeam()
+                                && rbt_at_dir.type.canMove() == false
+                            ) {
+                                BuildingAdjacentData building_data = new BuildingAdjacentData(rbt_at_dir.location, rc, false);
+                                if(
+                                    building_data.min_adj_elevation >= PIT_MAX_ELEVATION
+                                    && building_data.min_adj_elevation < rc.senseElevation(rbt_at_dir.location) + MAX_ELEVATION_STEP
+                                ) {
+                                    if(max_difference(building_data.min_adj_elev_loc, rc.getLocation()) <= 1) {
+                                        Direction deposit_dir = rc.getLocation().directionTo(building_data.min_adj_elev_loc);
+                                        if(canSafeDeposit(deposit_dir)) {
+                                            System.out.println("Tried to deposit adj to building " + deposit_dir.toString());
+                                            rc.depositDirt(deposit_dir);
+                                        } else {
+                                            System.out.println("zxcv " + deposit_dir.toString());
+                                        }
+                                    } else {
+                                        System.out.println("step " + building_data.min_adj_elev_loc.toString());
+                                        if(Math.random() < 0.5) {
+                                            fuzzy_clear();
+                                        }
+                                        fuzzy_step(building_data.min_adj_elev_loc, true);
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if(rc.isReady()) {
+                        Direction d = randomDirectionIncludingCenter();
+                        if(rc.canDepositDirt(d)
+                            && null == rc.senseRobotAtLocation(rc.adjacentLocation(d))
+                            && Math.random() < 0.5
+                        ) {
+                            rc.depositDirt(d);
+                        }
+                    }
                 }
             }
         }
         tryGoSomewhere();
+    }
+
+    boolean canSafeDepositUnderRobot(RobotInfo rbt) {
+        return (rbt == null
+            || !rbt.team.equals(rc.getTeam())
+            || rbt.type == RobotType.DELIVERY_DRONE
+        );
+    }
+
+    boolean canSafeDeposit(Direction dir) throws GameActionException {
+        MapLocation ml = rc.adjacentLocation(dir);
+        if(rc.canDepositDirt(dir)
+            && rc.canSenseLocation(ml)
+        ) {
+            RobotInfo rbt = rc.senseRobotAtLocation(ml);
+            if(canSafeDepositUnderRobot(rbt)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 

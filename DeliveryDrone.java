@@ -63,7 +63,7 @@ public strictfp class DeliveryDrone extends Unit {
                                     rbt.location,
                                     locOfHQ
                                 ) >= 2
-                                && rc.getRoundNum() - turn_i_was_1_from_hq <= 10
+                                && rc.getRoundNum() - turn_i_was_1_from_hq <= 3
                             )
                         )
                         && rc.canPickUpUnit(rbt.ID)
