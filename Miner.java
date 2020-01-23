@@ -31,6 +31,7 @@ public strictfp class Miner extends Unit {
     // the following integers must both be kept accurate
     int buildSequenceIndex = 0;
     int numBuildingsBuilt = 0;
+    int roundNumOfLastBuild = -12345;
 
     MapLocation where_i_found_soup = null;
     int num_rounds_going_to_where_i_found_soup = 0;
@@ -74,16 +75,18 @@ public strictfp class Miner extends Unit {
                 type_to_build = getTerraformingStageBuildingToBuild();
             }
             Direction build_dir = null;
-            if(rc.getTeamSoup() > max(
-                type_to_build.cost
-                ,
-                min(
-                    (25 * (numBuildingsBuilt * numBuildingsBuilt))
-                        + RobotType.DESIGN_SCHOOL.cost
+            if(rc.getRoundNum() >= 13 + roundNumOfLastBuild
+                && rc.getTeamSoup() > max(
+                    type_to_build.cost
                     ,
-                    RobotType.VAPORATOR.cost
+                    min(
+                        (25 * (numBuildingsBuilt * numBuildingsBuilt))
+                            + RobotType.DESIGN_SCHOOL.cost
+                        ,
+                        RobotType.VAPORATOR.cost
+                    )
                 )
-            )) {
+            ) {
                 should_mine = false;
                 if(locOfHQ != null) {
                     for(Direction dir : directions) {
@@ -110,7 +113,9 @@ public strictfp class Miner extends Unit {
                         type_to_build = getTerraformingStageBuildingToBuild();
                     }
                     if(tryBuild(type_to_build, build_dir)) {
+                        roundNumOfLastBuild = rc.getRoundNum();
                         numBuildingsBuilt++;
+                        System.out.println("num buildings built:" + String.valueOf(numBuildingsBuilt));
                         if(buildSequenceIndex < minerBuildSequence.length
                             && minerBuildSequence[buildSequenceIndex] == type_to_build
                         ) {
@@ -260,6 +265,7 @@ public strictfp class Miner extends Unit {
                 if(!there_already_is_a_refinery) {
                     System.out.println("I counted " + String.valueOf(amount_of_soup_nearby) + " soup so I built a refinery");
                     rc.buildRobot(RobotType.REFINERY, build_dir);
+                    roundNumOfLastBuild = rc.getRoundNum();
                     numBuildingsBuilt++;
                     return true;
                 }

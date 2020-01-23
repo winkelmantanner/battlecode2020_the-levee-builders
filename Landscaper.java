@@ -29,6 +29,10 @@ public strictfp class Landscaper extends Unit {
 
     int num_turns_unable_to_deposit_adj_to_hq = 0;
 
+    boolean has_attempt_to_BFS_to_hq_due_to_rush = false;
+
+    int num_rounds_trying_to_get_adjacent_to_hq_while_being_rushed = 0;
+
     Direction getDirectionToDigFrom(final boolean can_dig_adj_to_buildings) throws GameActionException {
         // find direction to lowest adjacent tile that we can dig
         Direction lowest_unoccupied_dir = null;
@@ -130,7 +134,51 @@ public strictfp class Landscaper extends Unit {
     public void runTurn() throws GameActionException {
         updateLocOfHQ();
 
-        // top priority: deposit on opponent buildings
+        RobotInfo nearest_enemy_rusher = null;
+        for(RobotInfo rbt : rc.senseNearbyRobots(
+            rc.getType().sensorRadiusSquared,
+            rc.getTeam().opponent()
+        )) {
+            if(rbt != null
+                && (rbt.type == RobotType.LANDSCAPER
+                    || rbt.type == RobotType.MINER
+                )
+            ) {
+                nearest_enemy_rusher = rbt;
+                break;
+            }
+        }
+
+        // top priority: get adjacent to HQ
+        if(locOfHQ != null) {
+            // get adjacent to HQ
+            for(Direction dir : directions) {
+                MapLocation ml = rc.getLocation().add(dir);
+                if(isValid(ml)
+                  && max_difference(locOfHQ, ml) == 1
+                  && canSafeMove(dir)
+                ) {
+                    if(1 == max_difference(locOfHQ, rc.getLocation())) {
+                        if(Math.random() < 0.01) {
+                            rc.move(dir);
+                        }
+                    } else {
+                        rc.move(dir);
+                    }
+                }
+            }
+
+            if(nearest_enemy_rusher != null
+                && max_difference(nearest_enemy_rusher.location, locOfHQ) <= 1
+                && max_difference(rc.getLocation(), locOfHQ) >= 2
+                && num_rounds_trying_to_get_adjacent_to_hq_while_being_rushed < 20
+            ) {
+                goToHQ();
+                num_rounds_trying_to_get_adjacent_to_hq_while_being_rushed++;
+            }
+        }
+
+        // deposit on opponent buildings
         Direction dir_to_deposit_to_bury_opponent_building = null;
         RobotInfo rbt_to_bury = null;
         for(Direction dir : directions) {
@@ -184,21 +232,6 @@ public strictfp class Landscaper extends Unit {
             }
         }
 
-        RobotInfo nearest_enemy_rusher = null;
-        for(RobotInfo rbt : rc.senseNearbyRobots(
-            rc.getType().sensorRadiusSquared,
-            rc.getTeam().opponent()
-        )) {
-            if(rbt != null
-                && (rbt.type == RobotType.LANDSCAPER
-                    || rbt.type == RobotType.MINER
-                )
-            ) {
-                nearest_enemy_rusher = rbt;
-                break;
-            }
-        }
-
 
         // dig from the lowest adjacent tile that is not occupied by a robot
         if(rc.getDirtCarrying() < MAX_ELEVATION_STEP) {
@@ -206,22 +239,6 @@ public strictfp class Landscaper extends Unit {
         }
 
         if(locOfHQ != null) {
-            // get adjacent to HQ
-            for(Direction dir : directions) {
-                MapLocation ml = rc.getLocation().add(dir);
-                if(isValid(ml)
-                  && max_difference(locOfHQ, ml) == 1
-                  && canSafeMove(dir)
-                ) {
-                    if(1 == max_difference(locOfHQ, rc.getLocation())) {
-                        if(Math.random() < 0.01) {
-                            rc.move(dir);
-                        }
-                    } else {
-                        rc.move(dir);
-                    }
-                }
-            }
 
             // remove dirt from on top of HQ
             for(Direction dir : directions) {
