@@ -142,6 +142,9 @@ abstract public strictfp class Robot {
     Direction randomDirection() {
         return directions[(int) (Math.random() * directions.length)];
     }
+    Direction randomDirectionIncludingCenter() {
+        return directions_including_center[(int) (Math.random() * directions_including_center.length)];
+    }
 
     /**
      * Returns a random RobotType spawned by miners.

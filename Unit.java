@@ -133,7 +133,7 @@ abstract public strictfp class Unit extends Robot {
         Direction dir = target_dir;
         final Direction opposite_dir = target_dir.opposite();
         boolean has_moved = false;
-        int num_to_rotate = 1;
+        int num_to_rotate = 0;
         boolean move_left = true;
         boolean stop = false;
         while(!stop && !has_moved && dir != opposite_dir) {
