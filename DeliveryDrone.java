@@ -83,6 +83,8 @@ public strictfp class DeliveryDrone extends Unit {
                             && (rc.senseFlooding(ml)
                                 || (rc.senseElevation(ml) <= PIT_MAX_ELEVATION
                                         && carried_unit_info.type != RobotType.COW
+                                        && locOfHQ != null
+                                        && max_difference(ml, locOfHQ) >= 2
                                     )
                             )
                         ) {

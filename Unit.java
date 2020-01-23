@@ -476,28 +476,35 @@ abstract public strictfp class Unit extends Robot {
             wall_BFS_is_following_wall = !safeTryMove(rc.getLocation().directionTo(dest), can_move_to_below_water_level);
         }
         if(wall_BFS_is_following_wall) {
-
-            run_BFS(dest, rc.getLocation(), BFS_mode.GET_TO_DEST);
+            return pure_wall_BFS_step(dest, can_move_to_below_water_level);
+        }
+        return false;
+    }
+    boolean pure_wall_BFS_step(MapLocation dest, final boolean can_move_to_below_water_level) throws GameActionException {
+        if(!rc.canSenseLocation(dest)) {
+            return false;
+        } 
+        
+        run_BFS(dest, rc.getLocation(), BFS_mode.GET_TO_DEST);
             
-            if(rc.getRoundNum() == prevGet(dest.x, dest.y, rc.getLocation().x, rc.getLocation().y).roundNumRecorded) {
-                MapLocation l = dest;
-                MapLocation prev_l = dest;
-                int infLoopPreventer = 100;
-                while(l != rc.getLocation() && infLoopPreventer > 0) {
-                    // System.out.println("l:" + l.toString() + " round:" + prevGet(l.x, l.y, our_x, our_y).roundNumRecorded);
-                    prev_l = l;
-                    l = prevGet(l.x, l.y, rc.getLocation().x, rc.getLocation().y).prev_loc;
-                    infLoopPreventer--;
-                }
-                if(l == rc.getLocation()) {
-                    Direction the_final_answer = rc.getLocation().directionTo(prev_l);
-                    // System.out.println("THE FINAL ANSWER: " + the_final_answer.toString());
-                    if(canSafeMove(the_final_answer, can_move_to_below_water_level)) {
-                        rc.move(the_final_answer);
-                        // System.out.println("RETURNING TRUE");
+        if(rc.getRoundNum() == prevGet(dest.x, dest.y, rc.getLocation().x, rc.getLocation().y).roundNumRecorded) {
+            MapLocation l = dest;
+            MapLocation prev_l = dest;
+            int infLoopPreventer = 100;
+            while(l != rc.getLocation() && infLoopPreventer > 0) {
+                // System.out.println("l:" + l.toString() + " round:" + prevGet(l.x, l.y, our_x, our_y).roundNumRecorded);
+                prev_l = l;
+                l = prevGet(l.x, l.y, rc.getLocation().x, rc.getLocation().y).prev_loc;
+                infLoopPreventer--;
+            }
+            if(l == rc.getLocation()) {
+                Direction the_final_answer = rc.getLocation().directionTo(prev_l);
+                // System.out.println("THE FINAL ANSWER: " + the_final_answer.toString());
+                if(canSafeMove(the_final_answer, can_move_to_below_water_level)) {
+                    rc.move(the_final_answer);
+                    // System.out.println("RETURNING TRUE");
 
-                        return true;
-                    }
+                    return true;
                 }
             }
         }
