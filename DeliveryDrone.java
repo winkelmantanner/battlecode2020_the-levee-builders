@@ -94,7 +94,13 @@ public strictfp class DeliveryDrone extends Unit {
                             carried_unit_info.team == rc.getTeam()
                             && rc.canSenseLocation(drop_loc)
                             && (carried_unit_info.type == RobotType.MINER
-                                || rc.getRoundNum() - turn_i_was_1_from_hq >= 10 + (5 * max_difference(drop_loc, locOfHQ))
+                                || rc.getRoundNum() - turn_i_was_1_from_hq
+                                    >= 10
+                                        + (
+                                            20
+                                            * max_difference(drop_loc, locOfHQ)
+                                            / max(rc.senseElevation(drop_loc), 1)
+                                        )
                             )
                             && !rc.senseFlooding(drop_loc)
                             && rc.senseElevation(drop_loc) > 0

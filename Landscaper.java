@@ -344,13 +344,11 @@ public strictfp class Landscaper extends Unit {
                                     if(max_difference(building_data.min_adj_elev_loc, rc.getLocation()) <= 1) {
                                         Direction deposit_dir = rc.getLocation().directionTo(building_data.min_adj_elev_loc);
                                         if(canSafeDeposit(deposit_dir)) {
-                                            System.out.println("Tried to deposit adj to building " + deposit_dir.toString());
+                                            // System.out.println("Tried to deposit adj to building " + deposit_dir.toString());
                                             rc.depositDirt(deposit_dir);
-                                        } else {
-                                            System.out.println("zxcv " + deposit_dir.toString());
                                         }
                                     } else {
-                                        System.out.println("step " + building_data.min_adj_elev_loc.toString());
+                                        // System.out.println("step " + building_data.min_adj_elev_loc.toString());
                                         if(Math.random() < 0.5) {
                                             fuzzy_clear();
                                         }

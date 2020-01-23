@@ -48,7 +48,7 @@ public strictfp class Miner extends Unit {
             || rc.getRoundNum() >= 1000 // its terraforming time
         ) {
             if(rc.getTeamSoup() > min(
-                (13 * (numBuildingsBuilt * numBuildingsBuilt))
+                (25 * (numBuildingsBuilt * numBuildingsBuilt))
                     + RobotType.DESIGN_SCHOOL.cost
                 ,
                 RobotType.VAPORATOR.cost
@@ -90,7 +90,7 @@ public strictfp class Miner extends Unit {
                                 }
                             }
                         }
-                        should_build_refinery = friendly_landscaper_adj_to_hq && !enemy_landscaper_adj_to_hq;
+                        should_build_refinery = friendly_landscaper_adj_to_hq;
                     }
                     if(should_build_refinery) {
                         type_to_build = RobotType.REFINERY;
