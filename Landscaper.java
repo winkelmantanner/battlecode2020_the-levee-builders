@@ -16,16 +16,20 @@ public strictfp class Landscaper extends Unit {
         rc = rbt_controller;
     }
 
+    MapLocation loc_i_dug_from = null;
+    void dig(Direction dir) throws GameActionException {
+        // make sure that digDirt is never called anywhere else
+        // this function keeps the instance variables up to date
+        rc.digDirt(dir);
+        loc_i_dug_from = rc.adjacentLocation(dir);
+    }
+
+
     final int NUM_TURNS_WITHOUT_HQ_ACCESS_BEFORE_TERRAFORMING = 20;
 
     int num_turns_unable_to_deposit_adj_to_hq = 0;
 
-    boolean digFromLowestAdjTile() throws GameActionException {
-        return digFromLowestAdjTile(true);
-    }
-    boolean digFromLowestAdjTile(final boolean can_dig_adj_to_buildings) throws GameActionException {
-        // digs from lowest adjacent tile not occupied by any robot except drone
-        boolean did_dig = false;
+    Direction getDirectionToDigFrom(final boolean can_dig_adj_to_buildings) throws GameActionException {
         // find direction to lowest adjacent tile that we can dig
         Direction lowest_unoccupied_dir = null;
         int min_diggable_elev = 30000;
@@ -65,13 +69,21 @@ public strictfp class Landscaper extends Unit {
                 }
             }
         }
+        return lowest_unoccupied_dir;
+    }
+    Direction digFromLowestAdjTile() throws GameActionException {
+        return digFromLowestAdjTile(true);
+    }
+    Direction digFromLowestAdjTile(final boolean can_dig_adj_to_buildings) throws GameActionException {
+        // digs from lowest adjacent tile not occupied by any robot except drone
+        Direction lowest_unoccupied_dir = getDirectionToDigFrom(can_dig_adj_to_buildings);
+        
         // dig lowest adjacent tile if possible
         if(lowest_unoccupied_dir != null) {
-            rc.digDirt(lowest_unoccupied_dir);
-            did_dig = true;
+            dig(lowest_unoccupied_dir);
             // System.out.println("I dug dirt");
         }
-        return did_dig;
+        return lowest_unoccupied_dir;
     }
 
     class BuildingAdjacentData {
@@ -156,7 +168,7 @@ public strictfp class Landscaper extends Unit {
                     // dig from lowest adjacent file that is not occupied
                     digFromLowestAdjTile();
                 } else {
-                    rc.digDirt(rc.getLocation().directionTo(locOfHQ));
+                    dig(rc.getLocation().directionTo(locOfHQ));
                 }
             } else if(rc.canSenseLocation(target_tile)
                 && rc.senseElevation(target_tile) - rc.senseElevation(rc.getLocation()) > 3
@@ -166,7 +178,7 @@ public strictfp class Landscaper extends Unit {
                 // dig through opp levee
                 // NOT TESTED AND PROBABLY DOESN'T WORK
                 System.out.println("Trying to dig through opp levee");
-                rc.digDirt(rc.getLocation().directionTo(opp_hq_loc));
+                dig(rc.getLocation().directionTo(opp_hq_loc));
             } else {
                 hybridStep(opp_hq_loc);
             }
@@ -217,7 +229,7 @@ public strictfp class Landscaper extends Unit {
                 if(ml.equals(locOfHQ)
                   && rc.canDigDirt(dir)
                 ) {
-                    rc.digDirt(dir);
+                    dig(dir);
                     System.out.println("DUG DIRT OFF HQ");
                 }
             }
@@ -327,6 +339,11 @@ public strictfp class Landscaper extends Unit {
                 num_turns_unable_to_deposit_adj_to_hq++;
                 goToHQ();
             } else if(rc.isReady()) {
+                if(Math.random() < 0.25
+                    && locOfHQ != null
+                ) {
+                    current_dir = rc.getLocation().directionTo(locOfHQ);
+                }
                 if(rc.getDirtCarrying() > 0) {
                     for(Direction dir : directions) {
                         MapLocation ml = rc.adjacentLocation(dir);
@@ -360,12 +377,28 @@ public strictfp class Landscaper extends Unit {
                         }
                     }
                     if(rc.isReady()) {
-                        Direction d = randomDirectionIncludingCenter();
-                        if(rc.canDepositDirt(d)
-                            && null == rc.senseRobotAtLocation(rc.adjacentLocation(d))
-                            && Math.random() < 0.5
-                        ) {
-                            rc.depositDirt(d);
+                        Direction lowest_nondig_dir = null;
+                        int lowest_nondig_deposit_loc_elevation = 12345;
+                        for(Direction dir : directions_including_center) {
+                            MapLocation ml = rc.adjacentLocation(dir);
+                            if(!ml.equals(loc_i_dug_from)
+                                && rc.canSenseLocation(ml)
+                                && rc.senseElevation(ml) < lowest_nondig_deposit_loc_elevation
+                                && rc.senseElevation(ml) > PIT_MAX_ELEVATION
+                                && rc.canDepositDirt(dir)
+                            ) {
+                                RobotInfo rbt = rc.senseRobotAtLocation(ml);
+                                if(rbt == null
+                                    || rbt.team != rc.getTeam()
+                                    || rbt.type.canMove()
+                                ) {
+                                    lowest_nondig_dir = dir;
+                                    lowest_nondig_deposit_loc_elevation = rc.senseElevation(ml);
+                                }
+                            }
+                        }
+                        if(lowest_nondig_deposit_loc_elevation <= 1 + GameConstants.getWaterLevel(rc.getRoundNum() + 200)) {
+                            rc.depositDirt(lowest_nondig_dir);
                         }
                     }
                 }
@@ -449,7 +482,7 @@ public strictfp class Landscaper extends Unit {
                 }
             }
             if(is_ok_to_dig) {
-                rc.digDirt(dir);
+                dig(dir);
                 return true;
             }
         }
