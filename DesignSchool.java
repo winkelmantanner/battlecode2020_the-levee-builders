@@ -22,7 +22,7 @@ public class DesignSchool extends Building {
         for (Direction dir : directions) {
             if(locOfHQ != null) {
                 if(rc.canBuildRobot(RobotType.LANDSCAPER, dir)
-                    && rc.getTeamSoup() > RobotType.LANDSCAPER.cost * (1.2 + (((double)num_landscapers_built) / 5))
+                    && rc.getTeamSoup() > RobotType.LANDSCAPER.cost * (1.2 + (((double)num_landscapers_built) / 3))
                     && num_landscapers_built < 8
                 ) {
                     MapLocation ml = rc.getLocation().add(dir);
