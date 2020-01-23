@@ -104,7 +104,12 @@ public strictfp class DeliveryDrone extends Unit {
                             )
                             && !rc.senseFlooding(drop_loc)
                             && rc.senseElevation(drop_loc) > 0
-                            && rc.senseElevation(drop_loc) < 12 + GameConstants.getWaterLevel(rc.getRoundNum())
+                            && (rc.senseElevation(drop_loc) < 12 + GameConstants.getWaterLevel(rc.getRoundNum())
+                                || (locOfHQ != null
+                                    && carried_unit_info.type == RobotType.LANDSCAPER
+                                    && max_difference(drop_loc, locOfHQ) <= 2
+                                )
+                            )
                         ) {
                             // drop friendly miners and landscapers on safe ground
                             // (only drop landscapers if we give up on droping on the levee)
