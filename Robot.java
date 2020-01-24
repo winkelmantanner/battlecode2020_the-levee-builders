@@ -345,10 +345,19 @@ abstract public strictfp class Robot {
         int dy = l.y - loc_of_hq.y;
         return loc_of_hq == null 
             || (rc.onTheMap(l)
-                && ((dx & 1) == 0)
-                && ((dy & 1) == 0)
-                && (dx != 0 || dy != 0)
-                && (abs(dx) != 2 || abs(dy) != 2)
+                && (
+                    (abs(dx) > 2 || abs(dy) > 2)
+                    ? (
+                        ((dx & 1) == 0)
+                        && ((dy & 1) == 0)
+                    )
+                    : (
+                        (dx == 2 && dy == 1)
+                        || (dx == -1 && dy == 2)
+                        || (dx == -2 && dy == -1)
+                        || (dx == 1 && dy == -2)
+                    )
+                )
             );
     }
     boolean isValidBuildLoc(MapLocation l, MapLocation loc_of_hq) {
