@@ -340,5 +340,29 @@ abstract public strictfp class Robot {
 
 
 
+    boolean isValidDigLoc(MapLocation l, MapLocation loc_of_hq) {
+        int dx = l.x - loc_of_hq.x;
+        int dy = l.y - loc_of_hq.y;
+        return loc_of_hq == null 
+            || (rc.onTheMap(l)
+                && ((dx & 1) == 0)
+                && ((dy & 1) == 0)
+                && (dx != 0 || dy != 0)
+                && (abs(dx) != 2 || abs(dy) != 2)
+            );
+    }
+    boolean isValidBuildLoc(MapLocation l, MapLocation loc_of_hq) {
+        int dx = l.x - loc_of_hq.x;
+        int dy = l.y - loc_of_hq.y;
+        return loc_of_hq == null 
+            || (rc.onTheMap(l)
+                && ((dx & 1) == 1)
+                && ((dy & 1) == 1)
+                && (abs(dx) != 1 || abs(dy) != 1)
+            );
+    }
+
+
+
 
 }

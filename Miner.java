@@ -32,6 +32,7 @@ public strictfp class Miner extends Unit {
     int buildSequenceIndex = 0;
     int numBuildingsBuilt = 0;
     int roundNumOfLastBuild = -12345;
+    int num_turns_search_for_build_loc = 0;
 
     MapLocation where_i_found_soup = null;
     int num_rounds_going_to_where_i_found_soup = 0;
@@ -86,19 +87,22 @@ public strictfp class Miner extends Unit {
                     )
                 )
             ) {
+                num_turns_search_for_build_loc++;
                 should_mine = false;
+                int max_build_dir_elev = -12345;
                 if(locOfHQ != null) {
                     for(Direction dir : directions) {
                         MapLocation ml = rc.adjacentLocation(dir);
                         int distance_squared_from_hq = ml.distanceSquaredTo(locOfHQ);
-                        if(buildSequenceIndex >= minerBuildSequence.length
-                            || (
-                                distance_squared_from_hq + 5 < RobotType.DESIGN_SCHOOL.sensorRadiusSquared
-                                && max_difference(ml, locOfHQ) >= 3 - (((double)rc.getTeamSoup() - type_to_build.cost) / 200)
+                        if(rc.canSenseLocation(ml)
+                            && (isValidBuildLoc(ml, locOfHQ)
+                                || num_turns_search_for_build_loc > 50
                             )
+                            && rc.senseElevation(ml) > max_build_dir_elev
+                            && rc.canBuildRobot(RobotType.DESIGN_SCHOOL, dir) // design school is minimal cost, we just need to check the location
                         ) {
                             build_dir = dir;
-                            break;
+                            max_build_dir_elev = rc.senseElevation(ml);
                         }
                     }
                 }
@@ -120,6 +124,7 @@ public strictfp class Miner extends Unit {
                         ) {
                             buildSequenceIndex++;
                         }
+                        num_turns_search_for_build_loc = 0;
                     }
                 }
                 if(locOfHQ != null && Math.random() < 0.75) {
