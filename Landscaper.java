@@ -356,7 +356,7 @@ public strictfp class Landscaper extends Unit {
                 num_turns_unable_to_deposit_adj_to_hq++;
                 goToHQ();
             } else if(rc.isReady()) {
-                if(Math.random() < 0.25
+                if(Math.random() < 0.1
                     && locOfHQ != null
                 ) {
                     current_dir = rc.getLocation().directionTo(locOfHQ);
