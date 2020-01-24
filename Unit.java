@@ -260,6 +260,33 @@ abstract public strictfp class Unit extends Robot {
     }
 
     
+    MapLocation where_i_spotted_enemy_shooter = null; // must be updated by the drone
+    int round_num_i_spotted_enemy_shooter = -12345;
+    int round_num_searched_for_enemy_shooter = -12345;
+    void updateWhereISpottedEnemyShooter() throws GameActionException {
+        // no matter how many times this function is called,
+        // senseNearbyRobots() is only called once per round
+        if(rc.getRoundNum() != round_num_searched_for_enemy_shooter) {
+            round_num_searched_for_enemy_shooter = rc.getRoundNum();
+            for(RobotInfo enemy_rbt : rc.senseNearbyRobots(
+                rc.getType().sensorRadiusSquared,
+                rc.getTeam().opponent()
+            )) {
+                if(enemy_rbt.type.canShoot()
+                    && enemy_rbt.getCooldownTurns() < 2
+                ) {
+                    where_i_spotted_enemy_shooter = enemy_rbt.location;
+                    round_num_i_spotted_enemy_shooter = rc.getRoundNum();
+                    break;
+                }
+            }
+            if(rc.getRoundNum() - round_num_i_spotted_enemy_shooter > 10) {
+                // Handle the case of the shooter having been destroyed
+                where_i_spotted_enemy_shooter = null;
+            }
+        }
+    }
+
     class CanSafeMove {
         public int roundNum;
         public boolean is_safe;
@@ -327,21 +354,18 @@ abstract public strictfp class Unit extends Robot {
         boolean is_safe_from_enemy_robots = true;
         switch(rc.getType()) {
             case DELIVERY_DRONE:
-                for(RobotInfo rbt : rc.senseNearbyRobots()) {
-                    if(rbt.team == rc.getTeam().opponent()
-                        && rbt.type.canShoot()
-                        && rbt.cooldownTurns < 2
-                        && loc.isWithinDistanceSquared(
-                            rbt.location,
-                            GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED
-                        )
-                        && !rc.getLocation().isWithinDistanceSquared(
-                            rbt.location,
-                            GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED
-                        )
-                    ) {
-                        is_safe_from_enemy_robots = false;
-                    }
+                updateWhereISpottedEnemyShooter();
+                if(where_i_spotted_enemy_shooter != null
+                    && loc.isWithinDistanceSquared(
+                        where_i_spotted_enemy_shooter,
+                        GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED
+                    )
+                    && !rc.getLocation().isWithinDistanceSquared(
+                        where_i_spotted_enemy_shooter,
+                        GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED
+                    )
+                ) {
+                    is_safe_from_enemy_robots = false;
                 }
                 is_safe = is_safe_from_enemy_robots && rc.canMove(dir);
                 break;
