@@ -39,7 +39,8 @@ public strictfp class Landscaper extends Unit {
         int min_diggable_elev = 30000;
         for(Direction dir : directions) {
             MapLocation l = rc.getLocation().add(dir);
-            if(isValid(l)
+            if(rc.onTheMap(l)
+                && isValidDigLoc(l, locOfHQ)
                 && rc.canSenseLocation(l)
             ) {
                 RobotInfo rbt_at_l = rc.senseRobotAtLocation(l);
@@ -399,6 +400,7 @@ public strictfp class Landscaper extends Unit {
                         for(Direction dir : directions_including_center) {
                             MapLocation ml = rc.adjacentLocation(dir);
                             if(!ml.equals(loc_i_dug_from)
+                                && !isValidDigLoc(ml, locOfHQ)
                                 && rc.canSenseLocation(ml)
                                 && rc.senseElevation(ml) < lowest_nondig_deposit_loc_elevation
                                 && rc.senseElevation(ml) > PIT_MAX_ELEVATION
