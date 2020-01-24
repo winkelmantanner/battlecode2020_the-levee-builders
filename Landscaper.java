@@ -403,27 +403,47 @@ public strictfp class Landscaper extends Unit {
                     if(rc.isReady()) {
                         Direction lowest_nondig_dir = null;
                         int lowest_nondig_deposit_loc_elevation = 12345;
+                        Direction lowest_build_dir = null;
+                        int lowest_build_dir_elevation = 12345;
                         for(Direction dir : directions_including_center) {
                             MapLocation ml = rc.adjacentLocation(dir);
-                            if(!ml.equals(loc_i_dug_from)
-                                && !isValidDigLoc(ml, locOfHQ)
-                                && rc.canSenseLocation(ml)
-                                && rc.senseElevation(ml) < lowest_nondig_deposit_loc_elevation
+                            if(rc.canSenseLocation(ml)
                                 && rc.senseElevation(ml) > PIT_MAX_ELEVATION
                                 && rc.canDepositDirt(dir)
                             ) {
-                                RobotInfo rbt = rc.senseRobotAtLocation(ml);
-                                if(rbt == null
-                                    || rbt.team != rc.getTeam()
-                                    || rbt.type.canMove()
+                                
+                                if(!ml.equals(loc_i_dug_from)
+                                    && !isValidDigLoc(ml, locOfHQ)
+                                    && rc.senseElevation(ml) < lowest_nondig_deposit_loc_elevation
                                 ) {
-                                    lowest_nondig_dir = dir;
-                                    lowest_nondig_deposit_loc_elevation = rc.senseElevation(ml);
+                                    RobotInfo rbt = rc.senseRobotAtLocation(ml);
+                                    if(rbt == null
+                                        || rbt.team != rc.getTeam()
+                                        || rbt.type.canMove()
+                                    ) {
+                                        lowest_nondig_dir = dir;
+                                        lowest_nondig_deposit_loc_elevation = rc.senseElevation(ml);
+                                    }
+                                }
+                                if(isValidBuildLoc(ml, locOfHQ)
+                                    && rc.senseElevation(ml) < lowest_build_dir_elevation
+                                ) {
+                                    RobotInfo rbt = rc.senseRobotAtLocation(ml);
+                                    if(rbt == null
+                                        || rbt.team != rc.getTeam()
+                                        || rbt.type.canMove()
+                                    ) {
+                                        lowest_build_dir = dir;
+                                        lowest_build_dir_elevation = rc.senseElevation(ml);
+                                    }
                                 }
                             }
                         }
-                        if(lowest_nondig_deposit_loc_elevation <= 1 + GameConstants.getWaterLevel(rc.getRoundNum() + 200)) {
+                        float water_level_in_200 = GameConstants.getWaterLevel(rc.getRoundNum() + 200);
+                        if(lowest_nondig_deposit_loc_elevation <= 1 + water_level_in_200) {
                             rc.depositDirt(lowest_nondig_dir);
+                        } else if(lowest_build_dir_elevation <= 1 + MAX_ELEVATION_STEP + water_level_in_200) {
+                            rc.depositDirt(lowest_build_dir);
                         }
                     }
                 }
