@@ -28,6 +28,7 @@ public strictfp class Landscaper extends Unit {
     final int NUM_TURNS_WITHOUT_HQ_ACCESS_BEFORE_TERRAFORMING = 20;
 
     int num_turns_unable_to_deposit_adj_to_hq = 0;
+    int num_turns_unable_to_deposit_adj_to_opp_hq = 0;
 
     boolean has_attempt_to_BFS_to_hq_due_to_rush = false;
 
@@ -228,8 +229,13 @@ public strictfp class Landscaper extends Unit {
                 // NOT TESTED AND PROBABLY DOESN'T WORK
                 System.out.println("Trying to dig through opp levee");
                 dig(rc.getLocation().directionTo(opp_hq_loc));
-            } else {
+            } else if(num_turns_unable_to_deposit_adj_to_opp_hq < NUM_TURNS_WITHOUT_HQ_ACCESS_BEFORE_TERRAFORMING) {
+                num_turns_unable_to_deposit_adj_to_opp_hq++;
                 hybridStep(opp_hq_loc);
+            }
+
+            if(max_difference(opp_hq_loc, rc.getLocation()) <= 2) {
+                num_turns_unable_to_deposit_adj_to_opp_hq = 0;
             }
         }
 
