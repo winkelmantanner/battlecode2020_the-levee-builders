@@ -98,7 +98,7 @@ abstract public strictfp class Unit extends Robot {
                 if(!has_moved) {
                     // System.out.println("falling back to bug from fuzzy dest:" + dest.toString());
                     hybrid_status = HybridStatus.BUG;
-                } else if(Math.random() < 0.75) {
+                } else if(Math.random() < 0.25) {
                     // System.out.println("advancing to bfs from fuzzy dest:" + dest.toString());
                     hybrid_status = HybridStatus.WALL_BFS;
                 }
