@@ -50,7 +50,11 @@ public strictfp class Landscaper extends Unit {
                     )
                     && rc.canDigDirt(dir)
                     && (rbt_at_l == null  // don't dig on occupied tiles
-                        || rbt_at_l.type == RobotType.DELIVERY_DRONE)
+                        || rbt_at_l.type == RobotType.DELIVERY_DRONE
+                        || (rbt_at_l.team == rc.getTeam().opponent()
+                            && rbt_at_l.type.canMove()
+                        )
+                    )
                     && rc.senseElevation(l) < min_diggable_elev
                 ) {
                     boolean l_is_adj_to_buildings = false;
