@@ -381,37 +381,37 @@ public strictfp class Landscaper extends Unit {
                     current_dir = rc.getLocation().directionTo(locOfHQ);
                 }
                 if(rc.getDirtCarrying() > 0) {
-                    for(Direction dir : directions) {
-                        MapLocation ml = rc.adjacentLocation(dir);
-                        if(rc.canSenseLocation(ml)) {
-                            RobotInfo rbt_at_dir = rc.senseRobotAtLocation(ml);
-                            if(rbt_at_dir != null
-                                && rbt_at_dir.team == rc.getTeam()
-                                && rbt_at_dir.type.canMove() == false
-                            ) {
-                                BuildingAdjacentData building_data = new BuildingAdjacentData(rbt_at_dir.location, rc, false);
-                                if(
-                                    building_data.min_adj_elevation >= pit_max_elevation
-                                    && building_data.min_adj_elevation < rc.senseElevation(rbt_at_dir.location) + MAX_ELEVATION_STEP
-                                ) {
-                                    if(max_difference(building_data.min_adj_elev_loc, rc.getLocation()) <= 1) {
-                                        Direction deposit_dir = rc.getLocation().directionTo(building_data.min_adj_elev_loc);
-                                        if(canSafeDeposit(deposit_dir)) {
-                                            // System.out.println("Tried to deposit adj to building " + deposit_dir.toString());
-                                            deposit(deposit_dir);
-                                        }
-                                    } else {
-                                        // System.out.println("step " + building_data.min_adj_elev_loc.toString());
-                                        if(Math.random() < 0.5) {
-                                            fuzzy_clear();
-                                        }
-                                        fuzzy_step(building_data.min_adj_elev_loc, true);
-                                    }
-                                    break;
-                                }
-                            }
-                        }
-                    }
+                    // for(Direction dir : directions) {
+                    //     MapLocation ml = rc.adjacentLocation(dir);
+                    //     if(rc.canSenseLocation(ml)) {
+                    //         RobotInfo rbt_at_dir = rc.senseRobotAtLocation(ml);
+                    //         if(rbt_at_dir != null
+                    //             && rbt_at_dir.team == rc.getTeam()
+                    //             && rbt_at_dir.type.canMove() == false
+                    //         ) {
+                    //             BuildingAdjacentData building_data = new BuildingAdjacentData(rbt_at_dir.location, rc, false);
+                    //             if(
+                    //                 building_data.min_adj_elevation >= pit_max_elevation
+                    //                 && building_data.min_adj_elevation < rc.senseElevation(rbt_at_dir.location) + MAX_ELEVATION_STEP
+                    //             ) {
+                    //                 if(max_difference(building_data.min_adj_elev_loc, rc.getLocation()) <= 1) {
+                    //                     Direction deposit_dir = rc.getLocation().directionTo(building_data.min_adj_elev_loc);
+                    //                     if(canSafeDeposit(deposit_dir)) {
+                    //                         // System.out.println("Tried to deposit adj to building " + deposit_dir.toString());
+                    //                         deposit(deposit_dir);
+                    //                     }
+                    //                 } else {
+                    //                     // System.out.println("step " + building_data.min_adj_elev_loc.toString());
+                    //                     if(Math.random() < 0.5) {
+                    //                         fuzzy_clear();
+                    //                     }
+                    //                     fuzzy_step(building_data.min_adj_elev_loc, true);
+                    //                 }
+                    //                 break;
+                    //             }
+                    //         }
+                    //     }
+                    // }
                     if(rc.isReady()) {
                         Direction lowest_nondig_dir = null;
                         int lowest_nondig_deposit_loc_elevation = 12345;
