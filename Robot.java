@@ -158,15 +158,6 @@ abstract public strictfp class Robot {
         return spawnedByMiner[(int) (Math.random() * spawnedByMiner.length)];
     }
 
-    RobotType getTerraformingStageBuildingToBuild() {
-        if(Math.random() < 0.8) {
-            return RobotType.VAPORATOR;
-        } else if(Math.random() < 0.8) {
-            return RobotType.NET_GUN;
-        } else {
-            return randomSpawnedByMiner();
-        }
-    }
 
 
 

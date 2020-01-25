@@ -49,12 +49,15 @@ public strictfp class Miner extends Unit {
     public void runTurn() throws GameActionException {
         updateLocOfHQ();
         boolean should_mine = true;
-        if(roundNumCreated <= 2 // we are the first miner built
+        boolean im_the_first_miner = roundNumCreated <= 2;
+        if(im_the_first_miner // we are the first miner built
             || rc.getRoundNum() >= 1000 // or its terraforming time
         ) {
             RobotType type_to_build = null;
             boolean should_build_refinery = false;
-            if(null == locOfRefinery) {
+            if(null == locOfRefinery
+                && im_the_first_miner
+            ) {
                 boolean enemy_landscaper_adj_to_hq = false;
                 for(RobotInfo rbt : rc.senseNearbyRobots()) {
                     if(rbt != null
@@ -74,9 +77,12 @@ public strictfp class Miner extends Unit {
             }
             if(should_build_refinery) {
                 type_to_build = RobotType.REFINERY;
-            } else if(buildSequenceIndex < minerBuildSequence.length) {
+            } else if(im_the_first_miner
+                && buildSequenceIndex < minerBuildSequence.length
+            ) {
                 type_to_build = minerBuildSequence[buildSequenceIndex];
             } else {
+                // unless im_the_first_miner, only this case occurs
                 type_to_build = getTerraformingStageBuildingToBuild();
             }
             Direction build_dir = null;
@@ -227,6 +233,17 @@ public strictfp class Miner extends Unit {
             }
         }
         tryGoSomewhere();
+    }
+
+
+    RobotType getTerraformingStageBuildingToBuild() {
+        if(Math.random() < 0.8) {
+            return RobotType.VAPORATOR;
+        } else if(Math.random() < 0.8) {
+            return RobotType.NET_GUN;
+        } else {
+            return randomSpawnedByMiner();
+        }
     }
 
     boolean buildRefineryIfApplicable() throws GameActionException {
