@@ -22,6 +22,7 @@ public strictfp class Landscaper extends Unit {
         // this function keeps the instance variables up to date
         rc.digDirt(dir);
         loc_i_dug_from = rc.adjacentLocation(dir);
+        rc.setIndicatorDot(rc.adjacentLocation(dir), 60, 60, 60);
     }
 
 
@@ -206,7 +207,7 @@ public strictfp class Landscaper extends Unit {
             }
         }
         if(dir_to_deposit_to_bury_opponent_building != null) {
-            rc.depositDirt(dir_to_deposit_to_bury_opponent_building);
+            deposit(dir_to_deposit_to_bury_opponent_building);
         }
 
         // If we have seen the opp HQ, move/dig toward it
@@ -342,9 +343,9 @@ public strictfp class Landscaper extends Unit {
                         && rc.senseElevation(rc.getLocation()) <= hq_adj_data.min_adj_elevation
                     ) {
                         // we know we have dirt since can_deposit_adj_to_hq
-                        rc.depositDirt(Direction.CENTER);
+                        deposit(Direction.CENTER);
                     } else {
-                        rc.depositDirt(dir_we_can_deposit_adj_to_hq);
+                        deposit(dir_we_can_deposit_adj_to_hq);
                     }
                 }
             }
@@ -388,7 +389,7 @@ public strictfp class Landscaper extends Unit {
                                         Direction deposit_dir = rc.getLocation().directionTo(building_data.min_adj_elev_loc);
                                         if(canSafeDeposit(deposit_dir)) {
                                             // System.out.println("Tried to deposit adj to building " + deposit_dir.toString());
-                                            rc.depositDirt(deposit_dir);
+                                            deposit(deposit_dir);
                                         }
                                     } else {
                                         // System.out.println("step " + building_data.min_adj_elev_loc.toString());
@@ -443,9 +444,9 @@ public strictfp class Landscaper extends Unit {
                         }
                         float water_level_in_200 = GameConstants.getWaterLevel(rc.getRoundNum() + 200);
                         if(lowest_nondig_deposit_loc_elevation <= 1 + water_level_in_200) {
-                            rc.depositDirt(lowest_nondig_dir);
+                            deposit(lowest_nondig_dir);
                         } else if(lowest_build_dir_elevation <= 1 + MAX_ELEVATION_STEP + water_level_in_200) {
-                            rc.depositDirt(lowest_build_dir);
+                            deposit(lowest_build_dir);
                         }
                     }
                 }
@@ -539,10 +540,15 @@ public strictfp class Landscaper extends Unit {
 
     boolean tryDeposit(final Direction dir) throws GameActionException {
         if(rc.canDepositDirt(dir) && !rc.getLocation().add(dir).equals(locOfHQ)) {
-            rc.depositDirt(dir);
+            deposit(dir);
             return true;
         }
         return false;
+    }
+
+    void deposit(final Direction dir) throws GameActionException {
+        rc.depositDirt(dir);
+        rc.setIndicatorDot(rc.adjacentLocation(dir), 255, 5, 5);
     }
 
 
