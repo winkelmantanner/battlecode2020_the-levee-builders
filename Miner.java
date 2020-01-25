@@ -69,6 +69,8 @@ public strictfp class Miner extends Unit {
                     }
                 }
                 should_build_refinery = has_seen_friendly_landscaper_adj_to_hq;
+            } else {
+                should_build_refinery = false;
             }
             if(should_build_refinery) {
                 type_to_build = RobotType.REFINERY;
