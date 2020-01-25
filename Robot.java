@@ -23,6 +23,8 @@ abstract public strictfp class Robot {
 
     final int MAX_ELEVATION_STEP = GameConstants.MAX_DIRT_DIFFERENCE; // I didn't see this in GameConstants until I'd already made this
 
+    final int PIT_DEPTH = 10;
+    int pit_max_elevation = -PIT_DEPTH; // to be modified when the elevation of the hq is read from the blockchain
 
 
     Robot(RobotController rbt_controller) {
@@ -93,6 +95,9 @@ abstract public strictfp class Robot {
             for(RobotInfo rbt : rc.senseNearbyRobots()) {
                 if(rbt.getType() == RobotType.HQ && rbt.team == rc.getTeam()) {
                     locOfHQ = rbt.location;
+                    if(rc.canSenseLocation(locOfHQ)) {
+                        pit_max_elevation = rc.senseElevation(locOfHQ) - PIT_DEPTH;
+                    }
                 }
             }
             if(locOfHQ == null) {
@@ -247,7 +252,10 @@ abstract public strictfp class Robot {
             rc.getLocation().y,
             rc.getLocation().x, // [3]
             rc.getLocation().y, // [4]
-            (int)(Math.random() * rc.getMapHeight())
+            (rc.canSenseLocation(rc.getLocation())
+                ? rc.senseElevation(rc.getLocation())
+                : 0
+            ) // [5]
         };
         return tryPostMessage(six_ints, 5);
     }
@@ -264,6 +272,7 @@ abstract public strictfp class Robot {
                         my_message[3],
                         my_message[4]
                     );
+                    pit_max_elevation = my_message[5] - PIT_DEPTH;
                 }
             }
         }
