@@ -746,6 +746,7 @@ abstract public strictfp class Unit extends Robot {
 
     boolean is_valid_enemy_drop_loc(MapLocation l) throws GameActionException {
         return rc.canSenseLocation(l)
+            && null == rc.senseRobotAtLocation(l)
             && (
                 rc.senseFlooding(l)
                 || (rc.senseElevation(l) <= PIT_MAX_ELEVATION
