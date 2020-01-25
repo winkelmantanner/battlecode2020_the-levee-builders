@@ -93,23 +93,7 @@ public strictfp class Miner extends Unit {
             ) {
                 num_turns_search_for_build_loc++;
                 should_mine = false;
-                int max_build_dir_elev = -12345;
-                if(locOfHQ != null) {
-                    for(Direction dir : directions) {
-                        MapLocation ml = rc.adjacentLocation(dir);
-                        int distance_squared_from_hq = ml.distanceSquaredTo(locOfHQ);
-                        if(rc.canSenseLocation(ml)
-                            && (isValidBuildLoc(ml, locOfHQ)
-                                || num_turns_search_for_build_loc > 50
-                            )
-                            && rc.senseElevation(ml) > max_build_dir_elev
-                            && rc.canBuildRobot(RobotType.DESIGN_SCHOOL, dir) // design school is minimal cost, we just need to check the location
-                        ) {
-                            build_dir = dir;
-                            max_build_dir_elev = rc.senseElevation(ml);
-                        }
-                    }
-                }
+                build_dir = getHighestBuildDir();
                 if(build_dir != null) {
                     MapLocation build_loc = rc.adjacentLocation(build_dir);
                     if(should_build_refinery) {
@@ -186,6 +170,8 @@ public strictfp class Miner extends Unit {
         //         should_mine = true;
         //     }
         }
+
+        buildNetGunIfEnemyDrone();
     
         if(should_mine) {
 
@@ -280,6 +266,61 @@ public strictfp class Miner extends Unit {
             }
         }
         return false;
+    }
+
+    Direction getHighestBuildDir() throws GameActionException {
+        int max_build_dir_elev = -12345;
+        Direction build_dir = null;
+        if(locOfHQ != null) {
+            for(Direction dir : directions) {
+                MapLocation ml = rc.adjacentLocation(dir);
+                int distance_squared_from_hq = ml.distanceSquaredTo(locOfHQ);
+                if(rc.canSenseLocation(ml)
+                    && (isValidBuildLoc(ml, locOfHQ)
+                        || num_turns_search_for_build_loc > 50
+                    )
+                    && rc.senseElevation(ml) > max_build_dir_elev
+                    && rc.canBuildRobot(RobotType.DESIGN_SCHOOL, dir) // design school is minimal cost, we just need to check the location
+                ) {
+                    build_dir = dir;
+                    max_build_dir_elev = rc.senseElevation(ml);
+                }
+            }
+        }
+        return build_dir;
+    }
+
+    boolean has_built_net_gun_because_of_enemy_drone = false;
+    boolean buildNetGunIfEnemyDrone() throws GameActionException {
+        boolean built_it_this_call = false;
+        if(locOfHQ != null
+            && rc.isReady()
+            && !has_built_net_gun_because_of_enemy_drone
+        ) {
+            boolean can_sense_enemy_drone = false;
+            for(RobotInfo rbt : rc.senseNearbyRobots(
+                rc.getType().sensorRadiusSquared,
+                rc.getTeam().opponent()
+            )) {
+                if(rbt.type == RobotType.DELIVERY_DRONE) {
+                    can_sense_enemy_drone = true;
+                    break;
+                }
+            }
+            if(can_sense_enemy_drone
+                && rc.getTeamSoup() > RobotType.NET_GUN.cost
+            ) {
+                int max_elev = -12345;
+                Direction build_dir = getHighestBuildDir();
+                if(build_dir != null) {
+                    tryBuild(RobotType.NET_GUN, build_dir);
+                    has_built_net_gun_because_of_enemy_drone = true;
+                    built_it_this_call = true;
+                    System.out.println("BUILT NET GUN");
+                }
+            }
+        }
+        return built_it_this_call;
     }
 
     boolean moveOnTopOfSoupIfPossible() throws GameActionException {
