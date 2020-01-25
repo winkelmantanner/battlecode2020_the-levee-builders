@@ -226,7 +226,7 @@ abstract public strictfp class Unit extends Robot {
                         last_elevation = rc.senseElevation(ml);
                         switch(x) {
                             case WATER_OR_PIT:
-                                if(rc.senseElevation(ml) <= PIT_MAX_ELEVATION
+                                if(is_valid_enemy_drop_loc(ml)
                                     && rc.canMove(dir)
                                 ) {
                                     current_dir = dir;
@@ -744,7 +744,16 @@ abstract public strictfp class Unit extends Robot {
 
 
 
-
+    boolean is_valid_enemy_drop_loc(MapLocation l) throws GameActionException {
+        return rc.canSenseLocation(l)
+            && (
+                rc.senseFlooding(l)
+                || (rc.senseElevation(l) <= PIT_MAX_ELEVATION
+                    && locOfHQ != null
+                    && max_difference(locOfHQ, l) > 1 + (rc.getRoundNum() > 300 ? 1 : 0)
+                )
+            );
+    }
 
 
 

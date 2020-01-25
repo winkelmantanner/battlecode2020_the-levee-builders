@@ -27,16 +27,7 @@ public strictfp class DeliveryDrone extends Unit {
 
     boolean has_posted = false;
 
-    boolean is_valid_enemy_drop_loc(MapLocation l) throws GameActionException {
-        return rc.canSenseLocation(l)
-            && (
-                rc.senseFlooding(l)
-                || (rc.senseElevation(l) <= PIT_MAX_ELEVATION
-                    && locOfHQ != null
-                    && max_difference(locOfHQ, l) > 1 + (rc.getRoundNum() > 300 ? 1 : 0)
-                )
-            );
-    }
+    
 
     public void runTurn() throws GameActionException {
         updateLocOfHQ();
