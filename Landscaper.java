@@ -244,14 +244,7 @@ public strictfp class Landscaper extends Unit {
             }
         }
 
-
-        // dig from the lowest adjacent tile that is not occupied by a robot
-        if(rc.getDirtCarrying() < MAX_ELEVATION_STEP) {
-            digFromLowestAdjTile(num_turns_unable_to_deposit_adj_to_hq < NUM_TURNS_WITHOUT_HQ_ACCESS_BEFORE_TERRAFORMING);
-        }
-
         if(locOfHQ != null) {
-
             // remove dirt from on top of HQ
             for(Direction dir : directions) {
                 MapLocation ml = rc.getLocation().add(dir);
@@ -262,6 +255,16 @@ public strictfp class Landscaper extends Unit {
                     System.out.println("DUG DIRT OFF HQ");
                 }
             }
+        }
+
+
+        // dig from the lowest adjacent tile that is not occupied by a robot
+        if(rc.getDirtCarrying() < MAX_ELEVATION_STEP) {
+            digFromLowestAdjTile(num_turns_unable_to_deposit_adj_to_hq < NUM_TURNS_WITHOUT_HQ_ACCESS_BEFORE_TERRAFORMING);
+        }
+
+        if(locOfHQ != null) {
+
 
             boolean should_work_on_hq = has_seen_distress_signal
                 || rc.getRoundNum() > 1000
