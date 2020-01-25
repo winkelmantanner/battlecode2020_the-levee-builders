@@ -148,6 +148,26 @@ public strictfp class DeliveryDrone extends Unit {
                 );
             }
 
+            // rush
+            if(is_attack_drone
+                && rc.getRoundNum() > 1300
+                && opp_hq_loc != null
+            ) {
+                if(
+                    (rc.getRoundNum() / 50) % 10 == 0
+                    && rc.getLocation().distanceSquaredTo(opp_hq_loc) <= 64
+                    && rc.canMove(rc.getLocation().directionTo(opp_hq_loc))
+                ) {
+                    // do the rush
+                    rc.move(rc.getLocation().directionTo(opp_hq_loc));
+                } else if(
+                    (rc.getRoundNum() / 50) % 10 == 9
+                ) {
+                    // prepare for the rush
+                    hybridStep(opp_hq_loc);
+                }
+            }
+
             if(!rc.isCurrentlyHoldingUnit()) {
                 for(RobotInfo rbt : getNearbyOpponentUnits()) {
                     if(rbt.team != rc.getTeam()
