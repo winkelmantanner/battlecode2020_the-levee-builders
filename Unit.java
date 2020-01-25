@@ -280,7 +280,7 @@ abstract public strictfp class Unit extends Robot {
                     break;
                 }
             }
-            if(rc.getRoundNum() - round_num_i_spotted_enemy_shooter > 10) {
+            if(rc.getRoundNum() - round_num_i_spotted_enemy_shooter > 50) {
                 // Handle the case of the shooter having been destroyed
                 where_i_spotted_enemy_shooter = null;
             }

@@ -17,7 +17,10 @@ public strictfp class DeliveryDrone extends Unit {
     DeliveryDrone(RobotController rbt_controller) {
         super(rbt_controller);
         rc = rbt_controller;
+        is_attack_drone = Math.random() < 0.5;
     }
+
+    boolean is_attack_drone = false;
 
     int turn_i_was_1_from_hq = -12345;
 
@@ -166,6 +169,9 @@ public strictfp class DeliveryDrone extends Unit {
                     && carried_unit_info.team != rc.getTeam()
                 )
                 || Math.random() < 0.25
+                || (is_attack_drone
+                    && rc.getRoundNum() > 300
+                )
             ) {
                 tryGoSomewhere();
             } else {
