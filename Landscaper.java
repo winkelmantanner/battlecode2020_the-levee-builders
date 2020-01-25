@@ -338,14 +338,12 @@ public strictfp class Landscaper extends Unit {
                     }
                 } else if(max_difference(locOfHQ, rc.getLocation()) == 2) {
                     if(rc.canSenseLocation(rc.getLocation())
-                        && rc.senseElevation(rc.getLocation()) < 200
+                        && rc.senseElevation(rc.getLocation()) <= MAX_ELEVATION_STEP + GameConstants.getWaterLevel(rc.getRoundNum() + 100)
                         && rc.senseElevation(rc.getLocation()) <= hq_adj_data.min_adj_elevation
                     ) {
                         // we know we have dirt since can_deposit_adj_to_hq
                         rc.depositDirt(Direction.CENTER);
-                    } else if(rc.canSenseLocation(rc.getLocation())
-                        && 200 <= rc.senseElevation(rc.getLocation())
-                    ) {
+                    } else {
                         rc.depositDirt(dir_we_can_deposit_adj_to_hq);
                     }
                 }
