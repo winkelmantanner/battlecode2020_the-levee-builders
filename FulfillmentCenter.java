@@ -15,7 +15,7 @@ public strictfp class FulfillmentCenter extends Building {
         super(rc);
         this.rc = rc;
     }
-    int round_num_saw_enemy_net_gun = -1234;
+    int round_num_saw_enemy_shooter = -1234;
     public void runTurn() throws GameActionException {
         updateLocOfHQ();
         if(rc.getTeamSoup() > RobotType.DELIVERY_DRONE.cost * (1 + num_drones_built)) {
@@ -24,11 +24,11 @@ public strictfp class FulfillmentCenter extends Building {
                 rc.getTeam().opponent()
             );
             for(RobotInfo rbt : nearby_enemy_robots) {
-                if(rbt.type == RobotType.NET_GUN) {
-                    round_num_saw_enemy_net_gun = rc.getRoundNum();
+                if(rbt.type.canShoot()) {
+                    round_num_saw_enemy_shooter = rc.getRoundNum();
                 }
             }
-            if(rc.getRoundNum() - round_num_saw_enemy_net_gun > 30) {
+            if(rc.getRoundNum() - round_num_saw_enemy_shooter > 30) {
                 Direction build_dir = null;
                 int min_build_dist_from_hq = 1234;
                 for (Direction dir : directions) {
