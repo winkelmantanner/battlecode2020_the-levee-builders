@@ -27,6 +27,16 @@ public strictfp class DeliveryDrone extends Unit {
 
     boolean has_posted = false;
 
+    boolean is_valid_enemy_drop_loc(MapLocation l) throws GameActionException {
+        return rc.canSenseLocation(l)
+            && (
+                rc.senseFlooding(l)
+                || (rc.senseElevation(l) <= PIT_MAX_ELEVATION
+                    && locOfHQ != null
+                    && max_difference(locOfHQ, l) > 1 + (rc.getRoundNum() > 300 ? 1 : 0)
+                )
+            );
+    }
 
     public void runTurn() throws GameActionException {
         updateLocOfHQ();
@@ -46,7 +56,7 @@ public strictfp class DeliveryDrone extends Unit {
                         && rbt.team != rc.getTeam()
                         && rc.canPickUpUnit(rbt.ID)
                         && rc.canSenseLocation(rbt.location)
-                        && rc.senseElevation(rbt.location) > PIT_MAX_ELEVATION
+                        && !is_valid_enemy_drop_loc(rbt.location)
                     ) {
                         // pick up any enemy unit
                         rc.pickUpUnit(rbt.ID);
@@ -86,15 +96,15 @@ public strictfp class DeliveryDrone extends Unit {
                     ) {
                         MapLocation drop_loc = rc.getLocation().add(dir);
                         if(carried_unit_info.team != rc.getTeam()
-                            && (rc.senseFlooding(ml)
-                                || (rc.senseElevation(ml) <= PIT_MAX_ELEVATION
-                                        && carried_unit_info.type != RobotType.COW
-                                        && locOfHQ != null
-                                        && max_difference(ml, locOfHQ) >= 2
-                                    )
+                            && is_valid_enemy_drop_loc(drop_loc)
+                            && (carried_unit_info.type != RobotType.COW
+                                || (rc.canSenseLocation(drop_loc)
+                                    && rc.senseFlooding(drop_loc)
+                                )
                             )
                         ) {
                             // drop enemy units and cows into water
+                            // drop enemy units in pits
                             rc.dropUnit(dir);
                             carried_unit_info = null;
                             break;
