@@ -37,6 +37,9 @@ public strictfp class Miner extends Unit {
     MapLocation where_i_found_soup = null;
     int num_rounds_going_to_where_i_found_soup = 0;
 
+    boolean has_seen_friendly_landscaper_adj_to_hq = false;
+
+
     boolean [] hq_might_be = {
         true,
         true,
@@ -52,7 +55,6 @@ public strictfp class Miner extends Unit {
             RobotType type_to_build = null;
             boolean should_build_refinery = false;
             if(null == locOfRefinery) {
-                boolean friendly_landscaper_adj_to_hq = false;
                 boolean enemy_landscaper_adj_to_hq = false;
                 for(RobotInfo rbt : rc.senseNearbyRobots()) {
                     if(rbt != null
@@ -60,13 +62,13 @@ public strictfp class Miner extends Unit {
                         && 1 == max_difference(rbt.location, locOfHQ)
                     ) {
                         if(rbt.team == rc.getTeam()) {
-                            friendly_landscaper_adj_to_hq = true;
+                            has_seen_friendly_landscaper_adj_to_hq = true;
                         } else {
                             enemy_landscaper_adj_to_hq = true;
                         }
                     }
                 }
-                should_build_refinery = friendly_landscaper_adj_to_hq;
+                should_build_refinery = has_seen_friendly_landscaper_adj_to_hq;
             }
             if(should_build_refinery) {
                 type_to_build = RobotType.REFINERY;
