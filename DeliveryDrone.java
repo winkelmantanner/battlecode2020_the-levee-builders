@@ -17,12 +17,15 @@ public strictfp class DeliveryDrone extends Unit {
     DeliveryDrone(RobotController rbt_controller) {
         super(rbt_controller);
         rc = rbt_controller;
-        is_attack_drone = Math.random() < 0.5;
+        will_be_attack_drone = Math.random() < 0.5;
     }
 
+    boolean will_be_attack_drone = false;
     boolean is_attack_drone = false;
 
     int turn_i_was_1_from_hq = -12345;
+
+    boolean has_posted = false;
 
 
     public void runTurn() throws GameActionException {
@@ -180,6 +183,26 @@ public strictfp class DeliveryDrone extends Unit {
                             hybridStep(rbt.location);
                         }
                     }
+                }
+            }
+
+            if(!has_posted) {
+                int [] six_ints = {
+                    MessageType.DRONE_SPAWN.getValue(),
+                    1234,
+                    rc.getMapWidth() % 4,
+                    (int) (Math.random() * rc.getMapHeight()),
+                    rc.getID(),
+                    5
+                };
+                has_posted = tryPostMessage(six_ints, 2);
+            }
+
+            for(int [] message : getMyMessages(rc.getRoundNum() - 1)) {
+                if(message[0] == MessageType.DRONE_SPAWN.getValue()
+                    && message[4] != rc.getID()
+                ) {
+                    is_attack_drone = will_be_attack_drone;
                 }
             }
 

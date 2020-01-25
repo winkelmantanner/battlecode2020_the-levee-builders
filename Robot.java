@@ -218,7 +218,8 @@ abstract public strictfp class Robot {
 
     enum MessageType {
         LOC_OF_REFINERY(1),
-        LOC_OF_HQ(2);
+        LOC_OF_HQ(2),
+        DRONE_SPAWN(3);
 
         private final int value;
 
