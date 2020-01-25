@@ -16,11 +16,30 @@ public strictfp class Hq extends Building {
     }
 
     boolean has_communicated_location = false;
+    boolean has_sent_distress_signal = false;
 
     // we store where we found soup because the senseNearbySoup function is unreliable
     Direction preferred_dir = null;
     int preferred_dir_round_num = -1234;
     public void runTurn() throws GameActionException {
+        if(!has_sent_distress_signal) {
+            for(RobotInfo rbt : rc.senseNearbyRobots(
+                rc.getType().sensorRadiusSquared,
+                rc.getTeam().opponent()
+            )) {
+                if(rbt.type.canBePickedUp()) {
+                    int [] six_ints = {
+                        MessageType.DISTRESS_SIGNAL.getValue(),
+                        0,
+                        (int)(Math.random() * rc.getMapWidth()),
+                        (int)(Math.random() * rc.getMapHeight()),
+                        7,
+                        228
+                    };
+                    has_sent_distress_signal = tryPostMessage(six_ints, 2);
+                }
+            }
+        }
         if(
             (
                 num_miners_built < NUM_MINERS_TO_BUILD_INITIALLY
