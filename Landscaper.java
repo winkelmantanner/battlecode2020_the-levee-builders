@@ -382,7 +382,7 @@ public strictfp class Landscaper extends Unit {
                             ) {
                                 BuildingAdjacentData building_data = new BuildingAdjacentData(rbt_at_dir.location, rc, false);
                                 if(
-                                    building_data.min_adj_elevation >= PIT_MAX_ELEVATION
+                                    building_data.min_adj_elevation >= pit_max_elevation
                                     && building_data.min_adj_elevation < rc.senseElevation(rbt_at_dir.location) + MAX_ELEVATION_STEP
                                 ) {
                                     if(max_difference(building_data.min_adj_elev_loc, rc.getLocation()) <= 1) {
@@ -411,7 +411,7 @@ public strictfp class Landscaper extends Unit {
                         for(Direction dir : directions_including_center) {
                             MapLocation ml = rc.adjacentLocation(dir);
                             if(rc.canSenseLocation(ml)
-                                && rc.senseElevation(ml) > PIT_MAX_ELEVATION
+                                && rc.senseElevation(ml) > pit_max_elevation
                                 && rc.canDepositDirt(dir)
                             ) {
                                 

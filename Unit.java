@@ -19,7 +19,7 @@ abstract public strictfp class Unit extends Robot {
     RobotInfo carried_unit_info = null;
 
 
-    final int PIT_MAX_ELEVATION = -10;
+    
 
 
     Direction current_dir = null;
@@ -749,7 +749,7 @@ abstract public strictfp class Unit extends Robot {
             && null == rc.senseRobotAtLocation(l)
             && (
                 rc.senseFlooding(l)
-                || (rc.senseElevation(l) <= PIT_MAX_ELEVATION
+                || (rc.senseElevation(l) <= pit_max_elevation
                     && locOfHQ != null
                     && max_difference(locOfHQ, l) > 1 + (rc.getRoundNum() > 300 ? 1 : 0)
                 )

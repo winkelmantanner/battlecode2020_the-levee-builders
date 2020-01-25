@@ -94,6 +94,7 @@ public strictfp class DeliveryDrone extends Unit {
                                 )
                             )
                         ) {
+                            System.out.println("pit_max_elevation: " + String.valueOf(pit_max_elevation));
                             // drop enemy units and cows into water
                             // drop enemy units in pits
                             rc.dropUnit(dir);
@@ -177,7 +178,7 @@ public strictfp class DeliveryDrone extends Unit {
                     if(rbt.team != rc.getTeam()
                       && rbt.type.canBePickedUp()
                       && rc.canSenseLocation(rbt.location)
-                      && rc.senseElevation(rbt.location) > PIT_MAX_ELEVATION
+                      && rc.senseElevation(rbt.location) > pit_max_elevation
                     ) {
                         // move toward enemy units if not carrying anythin
                         if(Math.random() < 0.95) {
