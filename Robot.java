@@ -186,6 +186,25 @@ abstract public strictfp class Robot {
             return false;
     }
 
+
+    int last_round_checked_for_distress_signal = 1;
+    boolean has_seen_distress_signal = false;
+    void checkForDistressSignal() throws GameActionException {
+        // to be called at the END of a robots turn
+        // This function can consume a lot of bytecodes
+        while(last_round_checked_for_distress_signal + 1 < rc.getRoundNum()
+            && Clock.getBytecodesLeft() > 1000
+        ) {
+            last_round_checked_for_distress_signal++;
+            for(int [] my_message : getMyMessages(last_round_checked_for_distress_signal)) {
+                if(my_message[0] == MessageType.DISTRESS_SIGNAL.getValue()) {
+                    has_seen_distress_signal = true;
+                    System.out.println("Received distress signal from HQ");
+                }
+            }
+        }
+    }
+
     final int NUM_PAYLOAD_INTS = GameConstants.BLOCKCHAIN_TRANSACTION_LENGTH - 1;
     final int[] NUMS_TO_ADD = { 791, 913, 123, 619, 403, 797 };
     int [] nums_to_add = null;

@@ -16,8 +16,6 @@ public class DesignSchool extends Building {
         this.rc = rc;
     }
 
-    int last_round_checked_for_distress_signal = 1;
-    boolean has_seen_distress_signal = false;
 
     public void runTurn() throws GameActionException {
         updateLocOfHQ();
@@ -36,13 +34,14 @@ public class DesignSchool extends Building {
                 elev_of_highest_buildable_adj_loc = rc.senseElevation(l);
             }
         }
-        boolean should_build_a_lot_of_landscapers = has_seen_distress_signal
-            || (rc.canSenseLocation(rc.getLocation())
-                && (
-                    GameConstants.getWaterLevel(rc.getRoundNum() + 100) >= rc.senseElevation(rc.getLocation())
-                    || GameConstants.getWaterLevel(rc.getRoundNum() + 100) >= elev_of_highest_buildable_adj_loc
-                )
-            );
+        boolean should_build_a_lot_of_landscapers = true;
+            // has_seen_distress_signal
+            // || (rc.canSenseLocation(rc.getLocation())
+            //     && (
+            //         GameConstants.getWaterLevel(rc.getRoundNum() + 100) >= rc.senseElevation(rc.getLocation())
+            //         || GameConstants.getWaterLevel(rc.getRoundNum() + 100) >= elev_of_highest_buildable_adj_loc
+            //     )
+            // );
 
         for (Direction dir : directions) {
             if(locOfHQ != null) {
@@ -88,17 +87,7 @@ public class DesignSchool extends Building {
             rc.buildRobot(RobotType.LANDSCAPER, dir_to_build);
             num_landscapers_built++;
         }
-        while(last_round_checked_for_distress_signal + 1 < rc.getRoundNum()
-            && Clock.getBytecodesLeft() > 1000
-        ) {
-            last_round_checked_for_distress_signal++;
-            for(int [] my_message : getMyMessages(last_round_checked_for_distress_signal)) {
-                if(my_message[0] == MessageType.DISTRESS_SIGNAL.getValue()) {
-                    has_seen_distress_signal = true;
-                    System.out.println("Received distress signal from HQ");
-                }
-            }
-        }
+        
 
     }
 }

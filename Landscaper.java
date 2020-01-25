@@ -263,89 +263,97 @@ public strictfp class Landscaper extends Unit {
                 }
             }
 
-            // determine if we can deposit adj to HQ and if so, where
-            boolean can_deposit_adj_to_hq = false;
-            Direction dir_we_can_deposit_adj_to_hq = null;
-            int elev_of_dir_we_can_deposit_adj_to_hq = 32123;
-            for(Direction dir : directions_including_center) {
-                MapLocation l = rc.getLocation().add(dir);
-                if(rc.canDepositDirt(dir)
-                  && max_difference(l, locOfHQ) == 1
-                  && rc.canSenseLocation(l)
-                  && rc.senseElevation(l) < elev_of_dir_we_can_deposit_adj_to_hq
-                  && !isIsolatedDueToMapEdge(l, locOfHQ)
-                ) {
-                    can_deposit_adj_to_hq = true;
-                    dir_we_can_deposit_adj_to_hq = dir;
-                    elev_of_dir_we_can_deposit_adj_to_hq = rc.senseElevation(l);
-                }
-            }
-            
-            BuildingAdjacentData hq_adj_data = new BuildingAdjacentData(locOfHQ, rc);
+            boolean should_work_on_hq = has_seen_distress_signal
+                || rc.getRoundNum() > 1000
+                || 1 == max_difference(rc.getLocation(), locOfHQ);
 
-            if(hq_adj_data.is_adj_to_enemy_landscaper) {
-                System.out.println("ENEMY LANDSCAPER; im carrying " + String.valueOf(rc.getDirtCarrying()) + " dirt");
-            }
+            if(should_work_on_hq) {
 
-            if(can_deposit_adj_to_hq
-                && rc.isReady()
-            ) {
-                num_turns_unable_to_deposit_adj_to_hq = 0;
-                if(max_difference(locOfHQ, rc.getLocation()) == 1) {
-                    // Direction dir_to_deposit = null;
-                    // if(rc.canSenseLocation(rc.getLocation())
-                    //     && hq_adj_data.min_adj_elevation >= rc.senseElevation(rc.getLocation())
-                    //     && rc.canDepositDirt(Direction.CENTER)
-                    // ) {
-                    //     dir_to_deposit = Direction.CENTER;
-                    // } else {
-                    //     int yet_another_min_elev = 12345;
-                    //     for(Direction dir : directions_including_center) {
-                    //         MapLocation l = rc.getLocation().add(dir);
-                    //         if(isValid(l)
-                    //             && max_difference(l, locOfHQ) == 1
-                    //             && rc.canSenseLocation(l)
-                    //             && (rc.senseElevation(l) < hq_adj_data.min_adj_elevation + MAX_ELEVATION_STEP
-                    //                 || hq_adj_data.is_adj_to_enemy_landscaper)
-                    //             && rc.senseElevation(l) < yet_another_min_elev
-                    //         ) {
-                    //             dir_to_deposit = dir;
-                    //             yet_another_min_elev = rc.senseElevation(l);
-                    //         }
-                    //     }
-                    // }
-                    if(
-                        (
-                            (nearest_enemy_rusher != null
-                                && rc.getRoundNum() < 300
-                            )
-                            || ((locOfRefinery != null
-                                    || hq_adj_data.min_adj_elevation > MAX_ELEVATION_STEP + rc.senseElevation(locOfHQ)
-                                    || rc.getRoundNum() > 250
-                                )
-                                && elev_of_dir_we_can_deposit_adj_to_hq < hq_adj_data.min_adj_elevation + MAX_ELEVATION_STEP
-                            )
-                        )
-                        && tryDeposit(dir_we_can_deposit_adj_to_hq)
+
+                // determine if we can deposit adj to HQ and if so, where
+                boolean can_deposit_adj_to_hq = false;
+                Direction dir_we_can_deposit_adj_to_hq = null;
+                int elev_of_dir_we_can_deposit_adj_to_hq = 32123;
+                for(Direction dir : directions_including_center) {
+                    MapLocation l = rc.getLocation().add(dir);
+                    if(rc.canDepositDirt(dir)
+                    && max_difference(l, locOfHQ) == 1
+                    && rc.canSenseLocation(l)
+                    && rc.senseElevation(l) < elev_of_dir_we_can_deposit_adj_to_hq
+                    && !isIsolatedDueToMapEdge(l, locOfHQ)
                     ) {
-                        // rc.setIndicatorDot(rc.getLocation().add(dir_we_can_deposit_adj_to_hq), 0, 255, 0);
-                        // System.out.println("I deposited dirt " + rc.getLocation().add(dir_we_can_deposit_adj_to_hq).toString());
-                    } else if(rc.getDirtCarrying() > 0) {
-                        // System.out.println("I MOVED");
-                        if(Math.random() < 0.5) {
-                            fuzzy_clear();
-                        }
-                        fuzzy_step(hq_adj_data.min_adj_elev_loc);
+                        can_deposit_adj_to_hq = true;
+                        dir_we_can_deposit_adj_to_hq = dir;
+                        elev_of_dir_we_can_deposit_adj_to_hq = rc.senseElevation(l);
                     }
-                } else if(max_difference(locOfHQ, rc.getLocation()) == 2) {
-                    if(rc.canSenseLocation(rc.getLocation())
-                        && rc.senseElevation(rc.getLocation()) <= min(100, MAX_ELEVATION_STEP + GameConstants.getWaterLevel(rc.getRoundNum() + 100))
-                        && rc.senseElevation(rc.getLocation()) <= hq_adj_data.min_adj_elevation
-                    ) {
-                        // we know we have dirt since can_deposit_adj_to_hq
-                        deposit(Direction.CENTER);
-                    } else {
-                        deposit(dir_we_can_deposit_adj_to_hq);
+                }
+                
+                BuildingAdjacentData hq_adj_data = new BuildingAdjacentData(locOfHQ, rc);
+
+                if(hq_adj_data.is_adj_to_enemy_landscaper) {
+                    System.out.println("ENEMY LANDSCAPER; im carrying " + String.valueOf(rc.getDirtCarrying()) + " dirt");
+                }
+
+                if(can_deposit_adj_to_hq
+                    && rc.isReady()
+                ) {
+                    num_turns_unable_to_deposit_adj_to_hq = 0;
+                    if(max_difference(locOfHQ, rc.getLocation()) == 1) {
+                        // Direction dir_to_deposit = null;
+                        // if(rc.canSenseLocation(rc.getLocation())
+                        //     && hq_adj_data.min_adj_elevation >= rc.senseElevation(rc.getLocation())
+                        //     && rc.canDepositDirt(Direction.CENTER)
+                        // ) {
+                        //     dir_to_deposit = Direction.CENTER;
+                        // } else {
+                        //     int yet_another_min_elev = 12345;
+                        //     for(Direction dir : directions_including_center) {
+                        //         MapLocation l = rc.getLocation().add(dir);
+                        //         if(isValid(l)
+                        //             && max_difference(l, locOfHQ) == 1
+                        //             && rc.canSenseLocation(l)
+                        //             && (rc.senseElevation(l) < hq_adj_data.min_adj_elevation + MAX_ELEVATION_STEP
+                        //                 || hq_adj_data.is_adj_to_enemy_landscaper)
+                        //             && rc.senseElevation(l) < yet_another_min_elev
+                        //         ) {
+                        //             dir_to_deposit = dir;
+                        //             yet_another_min_elev = rc.senseElevation(l);
+                        //         }
+                        //     }
+                        // }
+                        if(
+                            (
+                                (nearest_enemy_rusher != null
+                                    && rc.getRoundNum() < 300
+                                )
+                                || ((locOfRefinery != null
+                                        || hq_adj_data.min_adj_elevation > MAX_ELEVATION_STEP + rc.senseElevation(locOfHQ)
+                                        || rc.getRoundNum() > 250
+                                    )
+                                    && elev_of_dir_we_can_deposit_adj_to_hq < hq_adj_data.min_adj_elevation + MAX_ELEVATION_STEP
+                                )
+                            )
+                            && tryDeposit(dir_we_can_deposit_adj_to_hq)
+                        ) {
+                            // rc.setIndicatorDot(rc.getLocation().add(dir_we_can_deposit_adj_to_hq), 0, 255, 0);
+                            // System.out.println("I deposited dirt " + rc.getLocation().add(dir_we_can_deposit_adj_to_hq).toString());
+                        } else if(rc.getDirtCarrying() > 0) {
+                            // System.out.println("I MOVED");
+                            if(Math.random() < 0.5) {
+                                fuzzy_clear();
+                            }
+                            fuzzy_step(hq_adj_data.min_adj_elev_loc);
+                        }
+                    } else if(max_difference(locOfHQ, rc.getLocation()) == 2) {
+                        if(rc.canSenseLocation(rc.getLocation())
+                            && rc.senseElevation(rc.getLocation()) <= min(100, MAX_ELEVATION_STEP + GameConstants.getWaterLevel(rc.getRoundNum() + 100))
+                            && rc.senseElevation(rc.getLocation()) <= hq_adj_data.min_adj_elevation
+                        ) {
+                            // we know we have dirt since can_deposit_adj_to_hq
+                            deposit(Direction.CENTER);
+                        } else {
+                            deposit(dir_we_can_deposit_adj_to_hq);
+                        }
                     }
                 }
             }
@@ -361,6 +369,7 @@ public strictfp class Landscaper extends Unit {
             //     }
             // }
             if(rc.isReady()
+                && should_work_on_hq
                 && num_turns_unable_to_deposit_adj_to_hq < NUM_TURNS_WITHOUT_HQ_ACCESS_BEFORE_TERRAFORMING
             ) {
                 num_turns_unable_to_deposit_adj_to_hq++;
@@ -453,6 +462,7 @@ public strictfp class Landscaper extends Unit {
             }
         }
         tryGoSomewhere();
+        checkForDistressSignal();
     }
 
     boolean canSafeDepositUnderRobot(RobotInfo rbt) {
