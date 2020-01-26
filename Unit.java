@@ -740,7 +740,55 @@ abstract public strictfp class Unit extends Robot {
     }
 
 
-
+    private final int MAX_NUM_NEARBY_ENEMY_DRONES = 3;
+    private MapLocation [] nearby_enemy_drone_locs = new MapLocation[MAX_NUM_NEARBY_ENEMY_DRONES];
+    boolean tryRunFromAnyNearbyDrones() throws GameActionException {
+        int nearby_enemy_drones_length = 0;
+        for(RobotInfo rbt : rc.senseNearbyRobots(
+            rc.getType().sensorRadiusSquared,
+            rc.getTeam().opponent()
+        )) {
+            if(rbt.type.equals(RobotType.DELIVERY_DRONE)
+                && max_difference(rbt.location, rc.getLocation()) <= 3
+            ) {
+                nearby_enemy_drone_locs[nearby_enemy_drones_length] = rbt.location;
+                nearby_enemy_drones_length++;
+                System.out.println("Enemy drone " + rbt.location.toString());
+                if(nearby_enemy_drones_length >= MAX_NUM_NEARBY_ENEMY_DRONES) {
+                    break;
+                }
+            }
+        }
+        Direction best_dir = null;
+        if(nearby_enemy_drones_length > 0) {
+            int best_dir_min_drone_dist = -1234;
+            for(Direction dir : directions) {
+                if(canSafeMove(dir)) {
+                    MapLocation ml = rc.adjacentLocation(dir);
+                    int min_drone_dist = 1234;
+                    for(int k = 0; k < nearby_enemy_drones_length; k++) {
+                        int dist = max_difference(nearby_enemy_drone_locs[k], ml);
+                        if(dist < min_drone_dist) {
+                            min_drone_dist = dist;
+                        }
+                    }
+                    
+                    // find the dir with the maximum min_drone_dist
+                    if(min_drone_dist > best_dir_min_drone_dist) {
+                        best_dir = dir;
+                        best_dir_min_drone_dist = min_drone_dist;
+                    }
+                }
+            }
+        }
+        boolean moved = false;
+        if(best_dir != null) {
+            System.out.println("Ran from enemy drone; moved " + best_dir.toString());
+            rc.move(best_dir);
+            moved = true;
+        }
+        return moved;
+    }
 
 
 
