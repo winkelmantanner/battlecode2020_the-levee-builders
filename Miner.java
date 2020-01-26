@@ -240,7 +240,10 @@ public strictfp class Miner extends Unit {
         if(Math.random() < 0.8) {
             return RobotType.VAPORATOR;
         } else if(Math.random() < 0.8) {
-            return RobotType.NET_GUN;
+            return (rc.getRoundNum() > 1750
+                ? RobotType.FULFILLMENT_CENTER
+                : RobotType.NET_GUN
+            );
         } else {
             return randomSpawnedByMiner();
         }
