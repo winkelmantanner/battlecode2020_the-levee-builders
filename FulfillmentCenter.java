@@ -18,7 +18,11 @@ public strictfp class FulfillmentCenter extends Building {
     int round_num_saw_enemy_shooter = -1234;
     public void runTurn() throws GameActionException {
         updateLocOfHQ();
-        if(rc.getTeamSoup() > RobotType.DELIVERY_DRONE.cost * (1 + num_drones_built)) {
+        if(rc.getTeamSoup() > RobotType.DELIVERY_DRONE.cost * (
+            rc.getRoundNum() < 1300
+            ? 1 + num_drones_built
+            : 2 + (num_drones_built / 20)
+        )) {
             RobotInfo [] nearby_enemy_robots = rc.senseNearbyRobots(
                 rc.getType().sensorRadiusSquared,
                 rc.getTeam().opponent()
