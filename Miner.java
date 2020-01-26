@@ -178,7 +178,7 @@ public strictfp class Miner extends Unit {
         //     }
         }
 
-        buildNetGunIfEnemyDrone();
+        // buildNetGunIfEnemyDrone();
     
         tryRunFromAnyNearbyDrones();
 
