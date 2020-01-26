@@ -74,6 +74,7 @@ abstract public strictfp class Robot {
             Direction.SOUTH, Direction.SOUTHWEST, Direction.WEST, Direction.NORTHWEST };
     Direction[] directions_including_center = { Direction.CENTER, Direction.NORTH, Direction.NORTHEAST, Direction.EAST,
             Direction.SOUTHEAST, Direction.SOUTH, Direction.SOUTHWEST, Direction.WEST, Direction.NORTHWEST };
+    Direction[] cardinal_directions = { Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST };
     RobotType[] spawnedByMiner = { RobotType.REFINERY, RobotType.VAPORATOR, RobotType.DESIGN_SCHOOL,
             RobotType.FULFILLMENT_CENTER, RobotType.NET_GUN };
 
@@ -166,7 +167,11 @@ abstract public strictfp class Robot {
      * @return a random Direction
      */
     Direction randomDirection() {
-        return directions[(int) (Math.random() * directions.length)];
+        return randomDirection(false);
+    }
+    Direction randomDirection(final boolean cardinal_only) {
+        Direction [] allowable_directions = (cardinal_only ? cardinal_directions : directions);
+        return allowable_directions[(int) (Math.random() * allowable_directions.length)];
     }
     Direction randomDirectionIncludingCenter() {
         return directions_including_center[(int) (Math.random() * directions_including_center.length)];
