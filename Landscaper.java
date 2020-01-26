@@ -26,7 +26,7 @@ public strictfp class Landscaper extends Unit {
     }
 
 
-    final int NUM_TURNS_WITHOUT_HQ_ACCESS_BEFORE_TERRAFORMING = 20;
+    final int NUM_TURNS_WITHOUT_HQ_ACCESS_BEFORE_TERRAFORMING = 30;
 
     int num_turns_unable_to_deposit_adj_to_hq = 0;
     int num_turns_unable_to_deposit_adj_to_opp_hq = 0;
@@ -178,7 +178,7 @@ public strictfp class Landscaper extends Unit {
             if(nearest_enemy_rusher != null
                 && max_difference(nearest_enemy_rusher.location, locOfHQ) <= 1
                 && max_difference(rc.getLocation(), locOfHQ) >= 2
-                && num_rounds_trying_to_get_adjacent_to_hq_while_being_rushed < 20
+                && num_rounds_trying_to_get_adjacent_to_hq_while_being_rushed < 30
             ) {
                 goToHQ();
                 num_rounds_trying_to_get_adjacent_to_hq_while_being_rushed++;
