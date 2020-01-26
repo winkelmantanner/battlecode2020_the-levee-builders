@@ -211,7 +211,9 @@ public strictfp class Landscaper extends Unit {
         }
 
         // If we have seen the opp HQ, move/dig toward it
-        if(opp_hq_loc != null) {
+        if(opp_hq_loc != null
+            && opp_hq_loc.isWithinDistanceSquared(rc.getLocation(), rc.getType().sensorRadiusSquared)
+        ) {
             MapLocation target_tile = rc.getLocation().add(rc.getLocation().directionTo(opp_hq_loc));
             
             if(rc.getDirtCarrying() <= 0) {

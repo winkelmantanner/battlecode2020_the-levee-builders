@@ -108,6 +108,24 @@ abstract public strictfp class Robot {
             for(RobotInfo rbt : getNearbyOpponentUnits()) {
                 if(rbt.getType() == RobotType.HQ) {
                     opp_hq_loc = rbt.location;
+                    int [] six_ints = {
+                        MessageType.ENEMY_HQ_LOC.getValue(),
+                        opp_hq_loc.x, // [1]
+                        opp_hq_loc.y, // [2]
+                        rc.getTeamSoup() % rc.getMapWidth(),
+                        rc.getTeamSoup() % rc.getMapHeight(),
+                        0
+                    };
+                    tryPostMessage(six_ints, 2);
+                    break;
+                }
+            }
+            if(rc.getRoundNum() >= 2) {
+                for(int [] my_message : getMyMessages(rc.getRoundNum() - 1)) {
+                    if(my_message[0] == MessageType.ENEMY_HQ_LOC.getValue()) {
+                        opp_hq_loc = new MapLocation(my_message[1], my_message[2]);
+                        System.out.println("Received enemy hq loc: " + opp_hq_loc.toString());
+                    }
                 }
             }
         }
@@ -235,7 +253,8 @@ abstract public strictfp class Robot {
         LOC_OF_REFINERY(1),
         LOC_OF_HQ(2),
         DRONE_SPAWN(3),
-        DISTRESS_SIGNAL(4);
+        DISTRESS_SIGNAL(4),
+        ENEMY_HQ_LOC(5);
 
         private final int value;
 
