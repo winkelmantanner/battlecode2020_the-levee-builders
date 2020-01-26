@@ -102,23 +102,23 @@ public strictfp class Miner extends Unit {
                 build_dir = getHighestBuildDir();
                 if(build_dir != null) {
                     MapLocation build_loc = rc.adjacentLocation(build_dir);
-                    if(should_build_refinery) {
-                        type_to_build = RobotType.REFINERY;
-                    } else if(buildSequenceIndex < minerBuildSequence.length) {
-                        type_to_build = minerBuildSequence[buildSequenceIndex];
-                    } else {
-                        type_to_build = getTerraformingStageBuildingToBuild();
-                    }
-                    if(tryBuild(type_to_build, build_dir)) {
-                        roundNumOfLastBuild = rc.getRoundNum();
-                        numBuildingsBuilt++;
-                        System.out.println("num buildings built:" + String.valueOf(numBuildingsBuilt));
-                        if(buildSequenceIndex < minerBuildSequence.length
-                            && minerBuildSequence[buildSequenceIndex] == type_to_build
-                        ) {
-                            buildSequenceIndex++;
+
+                    if(!type_to_build.equals(RobotType.VAPORATOR)
+                        || rc.senseElevation(build_loc) > GameConstants.getWaterLevel(rc.getRoundNum() + 500)
+                    ) {
+                        // vaporators must only be built on high ground
+                    
+                        if(tryBuild(type_to_build, build_dir)) {
+                            roundNumOfLastBuild = rc.getRoundNum();
+                            numBuildingsBuilt++;
+                            System.out.println("num buildings built:" + String.valueOf(numBuildingsBuilt));
+                            if(buildSequenceIndex < minerBuildSequence.length
+                                && minerBuildSequence[buildSequenceIndex] == type_to_build
+                            ) {
+                                buildSequenceIndex++;
+                            }
+                            num_turns_search_for_build_loc = 0;
                         }
-                        num_turns_search_for_build_loc = 0;
                     }
                 }
                 tryGoToHqIfNearbyEnemyDrones();
@@ -242,11 +242,6 @@ public strictfp class Miner extends Unit {
     RobotType getTerraformingStageBuildingToBuild() {
         if(Math.random() < 0.8) {
             return RobotType.VAPORATOR;
-        } else if(Math.random() < 0.8) {
-            return (rc.getRoundNum() > 1750
-                ? RobotType.FULFILLMENT_CENTER
-                : RobotType.NET_GUN
-            );
         } else {
             return randomSpawnedByMiner();
         }
