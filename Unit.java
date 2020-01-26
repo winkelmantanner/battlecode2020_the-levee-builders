@@ -790,6 +790,20 @@ abstract public strictfp class Unit extends Robot {
         return moved;
     }
 
+    boolean tryGoToHqIfNearbyEnemyDrones() throws GameActionException {
+        for(RobotInfo rbt : rc.senseNearbyRobots(
+            rc.getType().sensorRadiusSquared,
+            rc.getTeam().opponent()
+        )) {
+            if(rbt.type.equals(RobotType.DELIVERY_DRONE)
+                && max_difference(rbt.location, rc.getLocation()) <= 3
+            ) {
+                return goToHQ();
+            }
+        }
+        return false;
+    }
+
 
 
     boolean is_valid_enemy_drop_loc(MapLocation l) throws GameActionException {
