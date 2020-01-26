@@ -46,17 +46,25 @@ public strictfp class Landscaper extends Unit {
                 && rc.canSenseLocation(l)
             ) {
                 RobotInfo rbt_at_l = rc.senseRobotAtLocation(l);
+                boolean rbt_at_l_is_friendly_building = (
+                    rbt_at_l != null
+                    && rbt_at_l.team.equals(rc.getTeam())
+                    && !rbt_at_l.type.canMove()
+                );
                 if((locOfHQ == null
                         || max_difference(l, locOfHQ) >= 2
                     )
                     && rc.canDigDirt(dir)
                     && (rbt_at_l == null  // don't dig on occupied tiles
                         || rbt_at_l.type == RobotType.DELIVERY_DRONE
+                        || rbt_at_l_is_friendly_building
                         || (rbt_at_l.team == rc.getTeam().opponent()
                             && rbt_at_l.type.canMove()
                         )
                     )
-                    && rc.senseElevation(l) < min_diggable_elev
+                    && (rc.senseElevation(l) < min_diggable_elev
+                        || rbt_at_l_is_friendly_building
+                    )
                 ) {
                     boolean l_is_adj_to_buildings = false;
                     if(!can_dig_adj_to_buildings) {
@@ -76,6 +84,10 @@ public strictfp class Landscaper extends Unit {
                     ) {
                         lowest_unoccupied_dir = dir;
                         min_diggable_elev = rc.senseElevation(l);
+                        if(rbt_at_l_is_friendly_building) {
+                            // prioritize digging on friendly buildings
+                            min_diggable_elev -= 1234;
+                        }
                     }
                 }
             }
