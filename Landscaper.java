@@ -363,7 +363,7 @@ public strictfp class Landscaper extends Unit {
                 }
             }
 
-            tryRunFromAnyNearbyDrones();
+            tryGoToHqIfNearbyEnemyDrones();
 
             // if(rc.isReady()) {
             //     System.out.println("I didn't use my shovel this round and im " + (im_stuck() ? "stuck" : "not stuck"));

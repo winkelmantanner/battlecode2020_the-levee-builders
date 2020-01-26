@@ -121,7 +121,7 @@ public strictfp class Miner extends Unit {
                         num_turns_search_for_build_loc = 0;
                     }
                 }
-                tryRunFromAnyNearbyDrones();
+                tryGoToHqIfNearbyEnemyDrones();
                 if(locOfHQ != null && Math.random() < 0.75) {
                     hybridStep(locOfHQ);
                 }
@@ -178,9 +178,9 @@ public strictfp class Miner extends Unit {
         //     }
         }
 
-        // buildNetGunIfEnemyDrone();
+        buildNetGunIfEnemyDrone();
     
-        tryRunFromAnyNearbyDrones();
+        tryGoToHqIfNearbyEnemyDrones();
 
         if(should_mine) {
 
