@@ -213,11 +213,8 @@ public strictfp class Miner extends Unit {
                         hybridStep(locOfRefinery);
                     }
                 } else if(where_i_found_soup != null && rc.isReady()) { // rc.getSoupCarrying() == 0
-                    if(num_rounds_going_to_where_i_found_soup < 15) {
-                        if(Math.random() < 1) {
-                            // current_dir is used by tryGoSomewhere
-                            current_dir = rc.getLocation().directionTo(where_i_found_soup);
-                        }
+                    if(num_rounds_going_to_where_i_found_soup < 30) {
+                        hybridStep(where_i_found_soup);
                         num_rounds_going_to_where_i_found_soup++;
                     } else {
                         where_i_found_soup = null;
