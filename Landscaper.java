@@ -37,6 +37,7 @@ public strictfp class Landscaper extends Unit {
 
     Direction getDirectionToDigFrom(final boolean can_dig_adj_to_buildings) throws GameActionException {
         // find direction to lowest adjacent tile that we can dig
+        // this function has been observed to take up to 1457 bytecodes
         Direction lowest_unoccupied_dir = null;
         int min_diggable_elev = 30000;
         for(Direction dir : directions) {
@@ -112,6 +113,7 @@ public strictfp class Landscaper extends Unit {
         return lowest_unoccupied_dir;
     }
 
+    // int max_bytecodes = 0;
     class BuildingAdjacentData {
         public int min_adj_elevation = 30000;
         public MapLocation min_adj_elev_loc = null;
@@ -120,6 +122,7 @@ public strictfp class Landscaper extends Unit {
             this(loc_of_building, rc, true);
         }
         BuildingAdjacentData(MapLocation loc_of_building, RobotController rc, final boolean include_tiles_with_buildings) throws GameActionException {
+            // int bcbefore = Clock.getBytecodeNum();
             for(int dx = -1; dx <= 1; dx++) {
                 for(int dy = -1; dy <= 1; dy++) {
                     MapLocation ml = loc_of_building.translate(dx, dy);
@@ -148,10 +151,15 @@ public strictfp class Landscaper extends Unit {
                     }
                 }
             }
+            // int bctaken = Clock.getBytecodeNum() - bcbefore;
+            // if(bctaken > max_bytecodes) {
+            //     max_bytecodes = bctaken;
+            //     System.out.println("max_bytecodes:" + String.valueOf(max_bytecodes));
+            // }
         }
     }
 
-
+// int max_bc = 0;
 
 
     public void runTurn() throws GameActionException {
@@ -337,6 +345,8 @@ public strictfp class Landscaper extends Unit {
                     System.out.println("ENEMY LANDSCAPER; im carrying " + String.valueOf(rc.getDirtCarrying()) + " dirt");
                 }
 
+                // int bcbefore = Clock.getBytecodeNum();
+
                 if(can_deposit_adj_to_hq
                     && rc.isReady()
                 ) {
@@ -399,6 +409,12 @@ public strictfp class Landscaper extends Unit {
                         }
                     }
                 }
+
+                // int bctaken = Clock.getBytecodeNum() - bcbefore;
+                // if(bctaken > max_bc) {
+                //     max_bc = bctaken;
+                //     System.out.println("max_bc:" + String.valueOf(max_bc));
+                // }
             }
 
             tryGoToHqIfNearbyEnemyDrones();
@@ -418,7 +434,12 @@ public strictfp class Landscaper extends Unit {
                 && num_turns_unable_to_deposit_adj_to_hq < NUM_TURNS_WITHOUT_HQ_ACCESS_BEFORE_TERRAFORMING
             ) {
                 num_turns_unable_to_deposit_adj_to_hq++;
+                // int x = Clock.getBytecodeNum();
                 goToHQ();
+                // if(Clock.getBytecodeNum() - x > maxbc) {
+                //     maxbc = Clock.getBytecodeNum() - x;
+                //     System.out.println("maxbc(x):" + String.valueOf(maxbc));
+                // }
             } else if(rc.isReady()) {
                 if(Math.random() < 0.1
                     && locOfHQ != null

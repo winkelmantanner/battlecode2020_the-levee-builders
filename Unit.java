@@ -85,7 +85,16 @@ abstract public strictfp class Unit extends Robot {
             prev_hybrid_dest = dest;
         }
         boolean has_moved = false;
-        if(rc.isReady()) {
+        boolean is_stuck = true;
+        for(Direction dir : directions) {
+            if(canSafeMove(dir)) {
+                is_stuck = false;
+                break;
+            }
+        }
+        if(rc.isReady()
+            && !is_stuck
+        ) {
             if(hybrid_status == HybridStatus.WALL_BFS) {
                 has_moved = wall_BFS_step(dest, can_move_to_below_water_level);
                 if(!has_moved) {
@@ -127,7 +136,11 @@ abstract public strictfp class Unit extends Robot {
     boolean fuzzy_step(final MapLocation dest) throws GameActionException {
         return fuzzy_step(dest, false);
     }
+    // int fuzzy_mbc = 0;
     boolean fuzzy_step(final MapLocation dest, final boolean can_move_to_below_water_level) throws GameActionException {
+        // this function has been observed to take up to 4383 bytecodes
+        // but may have been changed since then
+        int bcbefore = Clock.getBytecodeNum();
         fuzzy_where_ive_been.put(rc.getLocation().toString(), rc.getRoundNum());
         final Direction target_dir = rc.getLocation().directionTo(dest);
         Direction dir = target_dir;
@@ -147,19 +160,28 @@ abstract public strictfp class Unit extends Robot {
                 }
             }
 
-            String key = rc.adjacentLocation(dir).toString();
-            if(!fuzzy_where_ive_been.containsKey(key)
-                || fuzzy_where_ive_been.get(key) + 10 < rc.getRoundNum()
-            ) {
-                has_moved = safeTryMove(dir, can_move_to_below_water_level);
-            } else {
-                // System.out.println("fuzzy explorative block " + dir.toString());
-                // Don't get stuck in large cup shapes
-                stop = true;
+            if(canSafeMove(dir)) {
+                String key = rc.adjacentLocation(dir).toString();
+                
+                if(
+                    !fuzzy_where_ive_been.containsKey(key)
+                    || fuzzy_where_ive_been.get(key) + 10 < rc.getRoundNum()
+                ) {
+                    has_moved = safeTryMove(dir, can_move_to_below_water_level);
+                } else {
+                    // System.out.println("fuzzy explorative block " + dir.toString());
+                    // Don't get stuck in large cup shapes
+                    stop = true;
+                }
             }
             move_left = !move_left;
             num_to_rotate++;
         }
+        // int bcnow = Clock.getBytecodeNum();
+        // if(bcnow - bcbefore > fuzzy_mbc) {
+        //     fuzzy_mbc = bcnow - bcbefore;
+        //     System.out.println("fuzzy_mbc:" + String.valueOf(fuzzy_mbc));
+        // }
         return has_moved;
     }
 
@@ -168,6 +190,7 @@ abstract public strictfp class Unit extends Robot {
 
 
     boolean goToHQ() throws GameActionException {
+        // this function has been observed to take up to 6231 bytecodes
         if(Math.random() < 0.1 || locOfHQ == null) {
             tryGoSomewhere();
             return true;
@@ -790,7 +813,9 @@ abstract public strictfp class Unit extends Robot {
         return moved;
     }
 
+    // int maxbc = 0;
     boolean tryGoToHqIfNearbyEnemyDrones() throws GameActionException {
+        // int b = Clock.getBytecodeNum();
         for(RobotInfo rbt : rc.senseNearbyRobots(
             rc.getType().sensorRadiusSquared,
             rc.getTeam().opponent()
@@ -801,6 +826,11 @@ abstract public strictfp class Unit extends Robot {
                 return goToHQ();
             }
         }
+        // int t = Clock.getBytecodeNum() - b;
+        // if(t > maxbc) {
+        //     maxbc = t;
+        //     System.out.println("maxbc:" + String.valueOf(maxbc));
+        // }
         return false;
     }
 
