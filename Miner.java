@@ -239,11 +239,17 @@ public strictfp class Miner extends Unit {
     int lastCallNumBuildingsBuilt = -1;
     RobotType terraforming_build_type = null;
     RobotType getTerraformingStageBuildingToBuild() {
-        if(numBuildingsBuilt != lastCallNumBuildingsBuilt) {
+        if(numBuildingsBuilt != lastCallNumBuildingsBuilt
+            || rc.getRoundNum() > 1300
+        ) {
             if(Math.random() < 0.8) {
                 terraforming_build_type = RobotType.VAPORATOR;
             } else {
-                terraforming_build_type = randomSpawnedByMiner();
+                if(rc.getRoundNum() > 1300) {
+                    terraforming_build_type = RobotType.FULFILLMENT_CENTER;
+                } else {
+                    terraforming_build_type = randomSpawnedByMiner();
+                }
             }
             lastCallNumBuildingsBuilt = numBuildingsBuilt;
         }
