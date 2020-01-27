@@ -390,7 +390,9 @@ abstract public strictfp class Unit extends Robot {
                 ) {
                     is_safe_from_enemy_robots = false;
                 }
-                is_safe = is_safe_from_enemy_robots && rc.canMove(dir);
+                is_safe = isCardinal(dir)
+                    && is_safe_from_enemy_robots
+                    && rc.canMove(dir);
                 break;
             default:
                 float water_level_30_ago = (can_move_to_below_water_level

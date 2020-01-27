@@ -209,6 +209,18 @@ abstract public strictfp class Robot {
             return false;
     }
 
+    boolean isCardinal(final Direction d) {
+        switch(d) {
+            case NORTH:
+            case SOUTH:
+            case EAST:
+            case WEST:
+                return true;
+            default:
+                return false;
+        }
+    }
+
 
     int last_round_checked_for_distress_signal = 1;
     boolean has_seen_distress_signal = false;
