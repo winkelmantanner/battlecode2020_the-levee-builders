@@ -62,7 +62,7 @@ public strictfp class Miner extends Unit {
                 for(RobotInfo rbt : rc.senseNearbyRobots()) {
                     if(rbt != null
                         && rbt.type == RobotType.LANDSCAPER
-                        && 1 == max_difference(rbt.location, locOfHQ)
+                        && rbt.location.isAdjacentTo(locOfHQ)
                     ) {
                         if(rbt.team == rc.getTeam()) {
                             has_seen_friendly_landscaper_adj_to_hq = true;

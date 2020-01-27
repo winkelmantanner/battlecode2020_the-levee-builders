@@ -44,7 +44,7 @@ abstract public strictfp class Robot {
     }
     public void endTurn() {
         if(roundNumBefore != rc.getRoundNum()) {
-            System.out.println("Took " + String.valueOf(rc.getRoundNum() - roundNumBefore) + " rounds");
+            System.out.println("Took " + String.valueOf(rc.getRoundNum() - roundNumBefore) + " rounds, " + String.valueOf(Clock.getBytecodeNum()) + " bytecodes");
         }
     }
 
@@ -385,6 +385,25 @@ abstract public strictfp class Robot {
 
 
 
+
+    boolean isIsolatedDueToMapEdge(
+        final MapLocation location_of_interest,
+        final MapLocation location_of_building
+    ) {
+        boolean is_isolated = true;
+        for(Direction d : directions) {
+            MapLocation adj = location_of_interest.add(d);
+            if(rc.onTheMap(adj)
+                && max_difference(adj, location_of_building) >= 2
+            ) {
+                is_isolated = false;
+                break;
+            }
+        }
+        return is_isolated;
+    }
+
+
     boolean isValidDigLoc(MapLocation l, MapLocation loc_of_hq) {
         int dx = l.x - loc_of_hq.x;
         int dy = l.y - loc_of_hq.y;
@@ -401,6 +420,7 @@ abstract public strictfp class Robot {
                         || (dx == -1 && dy == 2)
                         || (dx == -2 && dy == -1)
                         || (dx == 1 && dy == -2)
+                        // || isIsolatedDueToMapEdge(l, loc_of_hq)
                     )
                 )
             );

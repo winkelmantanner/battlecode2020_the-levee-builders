@@ -32,7 +32,7 @@ public strictfp class DeliveryDrone extends Unit {
     public void runTurn() throws GameActionException {
         updateLocOfHQ();
         if(locOfHQ != null
-            && 1 == max_difference(rc.getLocation(), locOfHQ)
+            && rc.getLocation().isAdjacentTo(locOfHQ)
         ) {
             turn_i_was_1_from_hq = rc.getRoundNum();
         }
@@ -130,7 +130,7 @@ public strictfp class DeliveryDrone extends Unit {
                             carried_unit_info.team == rc.getTeam()
                             && carried_unit_info.type == RobotType.LANDSCAPER
                             && locOfHQ != null
-                            && 1 == max_difference(drop_loc, locOfHQ)
+                            && drop_loc.isAdjacentTo(locOfHQ)
                         ) {
                             // drop friendly landscapers on the levee
                             rc.dropUnit(dir);
