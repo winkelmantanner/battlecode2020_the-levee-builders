@@ -61,6 +61,9 @@ public strictfp class Landscaper extends Unit {
                         || (rbt_at_l.team == rc.getTeam().opponent()
                             && rbt_at_l.type.canMove()
                         )
+                        // || (locOfHQ != null
+                        //     && isIsolatedDueToMapEdge(l, locOfHQ)
+                        // )
                     )
                     && (rc.senseElevation(l) < min_diggable_elev
                         || rbt_at_l_is_friendly_building
@@ -125,21 +128,22 @@ public strictfp class Landscaper extends Unit {
                         && (!isIsolatedDueToMapEdge(ml, loc_of_building)
                             || rc.senseFlooding(ml)
                         )
-                        && (include_tiles_with_buildings
-                            || canSafeDepositUnderRobot(rc.senseRobotAtLocation(ml))
-                        )
                     ) {
-                        int elev = rc.senseElevation(ml);
-                        if(elev < min_adj_elevation) {
-                            min_adj_elevation = elev;
-                            min_adj_elev_loc = ml;
-                        }
-                        RobotInfo rbt_at_loc = rc.senseRobotAtLocation(ml);
-                        if(rbt_at_loc != null
-                            && rbt_at_loc.team == rc.getTeam().opponent()
-                            && rbt_at_loc.type == RobotType.LANDSCAPER
+                        RobotInfo rbt_at_ml = rc.senseRobotAtLocation(ml);
+                        if(include_tiles_with_buildings
+                            || canSafeDepositUnderRobot(rbt_at_ml)
                         ) {
-                            is_adj_to_enemy_landscaper = true;
+                            int elev = rc.senseElevation(ml);
+                            if(elev < min_adj_elevation) {
+                                min_adj_elevation = elev;
+                                min_adj_elev_loc = ml;
+                            }
+                            if(rbt_at_ml != null
+                                && rbt_at_ml.team == rc.getTeam().opponent()
+                                && rbt_at_ml.type == RobotType.LANDSCAPER
+                            ) {
+                                is_adj_to_enemy_landscaper = true;
+                            }
                         }
                     }
                 }
@@ -174,10 +178,10 @@ public strictfp class Landscaper extends Unit {
             for(Direction dir : directions) {
                 MapLocation ml = rc.getLocation().add(dir);
                 if(isValid(ml)
-                  && max_difference(locOfHQ, ml) == 1
+                  && ml.isAdjacentTo(locOfHQ)
                   && canSafeMove(dir)
                 ) {
-                    if(1 == max_difference(locOfHQ, rc.getLocation())) {
+                    if(rc.getLocation().isAdjacentTo(locOfHQ)) {
                         if(Math.random() < 0.01) {
                             rc.move(dir);
                         }
@@ -188,8 +192,8 @@ public strictfp class Landscaper extends Unit {
             }
 
             if(nearest_enemy_rusher != null
-                && max_difference(nearest_enemy_rusher.location, locOfHQ) <= 1
-                && max_difference(rc.getLocation(), locOfHQ) >= 2
+                && nearest_enemy_rusher.location.isAdjacentTo(locOfHQ)
+                && !rc.getLocation().isAdjacentTo(locOfHQ)
                 && num_rounds_trying_to_get_adjacent_to_hq_while_being_rushed < 30
             ) {
                 goToHQ();
@@ -241,7 +245,7 @@ public strictfp class Landscaper extends Unit {
                 }
             } else if(rc.canSenseLocation(target_tile)
                 && rc.senseElevation(target_tile) - rc.senseElevation(rc.getLocation()) > 3
-                && max_difference(target_tile, opp_hq_loc) == 1
+                && target_tile.isAdjacentTo(opp_hq_loc)
                 && rc.canDigDirt(rc.getLocation().directionTo(opp_hq_loc))
             ) {
                 // dig through opp levee
@@ -258,6 +262,20 @@ public strictfp class Landscaper extends Unit {
             }
         }
 
+        // if(locOfHQ != null
+        //     && 1 == max_difference(rc.getLocation(), locOfHQ)
+        // ) {
+        //     // remove dirt from on top of HQ
+        //     Direction dir_to_hq = rc.getLocation().directionTo(locOfHQ);
+        //     MapLocation ml = rc.adjacentLocation(dir_to_hq);
+        //     if(ml.equals(locOfHQ)
+        //         && rc.canDigDirt(dir_to_hq)
+        //     ) {
+        //         dig(dir_to_hq);
+        //         System.out.println("DUG DIRT OFF HQ");
+        //     }
+        // }
+        ////////
         if(locOfHQ != null) {
             // remove dirt from on top of HQ
             for(Direction dir : directions) {
@@ -269,7 +287,15 @@ public strictfp class Landscaper extends Unit {
                     System.out.println("DUG DIRT OFF HQ");
                 }
             }
+
+            if(rc.getRoundNum() == 2000) {
+                int bcbefore = Clock.getBytecodeNum();
+                System.out.println(String.valueOf(rc.getLocation().isAdjacentTo(locOfHQ)));
+                System.out.println(String.valueOf(Clock.getBytecodeNum() - bcbefore));
+            }
         }
+        ////////
+
 
 
         // dig from the lowest adjacent tile that is not occupied by a robot
@@ -282,7 +308,7 @@ public strictfp class Landscaper extends Unit {
 
             boolean should_work_on_hq = has_seen_distress_signal
                 || rc.getRoundNum() > 1000
-                || 1 == max_difference(rc.getLocation(), locOfHQ);
+                || rc.getLocation().isAdjacentTo(locOfHQ);
 
             if(should_work_on_hq) {
 
@@ -294,7 +320,7 @@ public strictfp class Landscaper extends Unit {
                 for(Direction dir : directions_including_center) {
                     MapLocation l = rc.getLocation().add(dir);
                     if(rc.canDepositDirt(dir)
-                    && max_difference(l, locOfHQ) == 1
+                    && l.isAdjacentTo(locOfHQ)
                     && rc.canSenseLocation(l)
                     && rc.senseElevation(l) < elev_of_dir_we_can_deposit_adj_to_hq
                     && !isIsolatedDueToMapEdge(l, locOfHQ)
@@ -304,7 +330,7 @@ public strictfp class Landscaper extends Unit {
                         elev_of_dir_we_can_deposit_adj_to_hq = rc.senseElevation(l);
                     }
                 }
-                
+
                 BuildingAdjacentData hq_adj_data = new BuildingAdjacentData(locOfHQ, rc);
 
                 if(hq_adj_data.is_adj_to_enemy_landscaper) {
@@ -315,7 +341,7 @@ public strictfp class Landscaper extends Unit {
                     && rc.isReady()
                 ) {
                     num_turns_unable_to_deposit_adj_to_hq = 0;
-                    if(max_difference(locOfHQ, rc.getLocation()) == 1) {
+                    if(rc.getLocation().isAdjacentTo(locOfHQ)) {
                         // Direction dir_to_deposit = null;
                         // if(rc.canSenseLocation(rc.getLocation())
                         //     && hq_adj_data.min_adj_elevation >= rc.senseElevation(rc.getLocation())
@@ -506,23 +532,6 @@ public strictfp class Landscaper extends Unit {
 
 
 
-
-    boolean isIsolatedDueToMapEdge(
-        final MapLocation location_of_interest,
-        final MapLocation location_of_building
-    ) {
-        boolean is_isolated = true;
-        for(Direction d : directions) {
-            MapLocation adj = location_of_interest.add(d);
-            if(rc.onTheMap(adj)
-                && max_difference(adj, location_of_building) >= 2
-            ) {
-                is_isolated = false;
-                break;
-            }
-        }
-        return is_isolated;
-    }
 
 
 
