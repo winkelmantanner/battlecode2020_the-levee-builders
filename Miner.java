@@ -239,12 +239,18 @@ public strictfp class Miner extends Unit {
     }
 
 
+    int lastCallNumBuildingsBuilt = -1;
+    RobotType terraforming_build_type = null;
     RobotType getTerraformingStageBuildingToBuild() {
-        if(Math.random() < 0.8) {
-            return RobotType.VAPORATOR;
-        } else {
-            return randomSpawnedByMiner();
+        if(numBuildingsBuilt != lastCallNumBuildingsBuilt) {
+            if(Math.random() < 0.8) {
+                terraforming_build_type = RobotType.VAPORATOR;
+            } else {
+                terraforming_build_type = randomSpawnedByMiner();
+            }
+            lastCallNumBuildingsBuilt = numBuildingsBuilt;
         }
+        return terraforming_build_type;
     }
 
     boolean buildRefineryIfApplicable() throws GameActionException {
