@@ -31,12 +31,27 @@ abstract public strictfp class Building extends Robot {
 
     boolean shootOpponentDroneIfPossible() throws GameActionException {
         // only call on net gun and HQ
-        for(RobotInfo rbt : rc.senseNearbyRobots()) {
-            if(rbt.getType() == RobotType.DELIVERY_DRONE && rbt.getTeam() == rc.getTeam().opponent() && rc.canShootUnit(rbt.ID)) {
-                rc.shootUnit(rbt.ID);
-                System.out.println("I shot");
-                return true;
+        int min_dist_squared = rc.getType().sensorRadiusSquared;
+        RobotInfo target_rbt = null;
+        for(RobotInfo rbt : rc.senseNearbyRobots(
+            rc.getType().sensorRadiusSquared,
+            rc.getTeam().opponent()
+        )) {
+            if(rbt.getType() == RobotType.DELIVERY_DRONE
+                && rc.canShootUnit(rbt.ID)
+                && rc.getLocation().distanceSquaredTo(rbt.location) < min_dist_squared
+            ) {
+                target_rbt = rbt;
+                min_dist_squared = rc.getLocation().distanceSquaredTo(rbt.location);
+                if(Clock.getBytecodesLeft() < 1000) {
+                    break;
+                }
             }
+        }
+        if(target_rbt != null) {
+            rc.shootUnit(target_rbt.ID);
+            System.out.println("I shot");
+            return true;
         }
         return false;
     }
