@@ -54,6 +54,7 @@ public strictfp class Landscaper extends Unit {
                 );
                 if((locOfHQ == null
                         || max_difference(l, locOfHQ) >= 2
+                        || isIsolatedDueToMapEdge(l, locOfHQ)
                     )
                     && rc.canDigDirt(dir)
                     && (rbt_at_l == null  // don't dig on occupied tiles
@@ -62,9 +63,9 @@ public strictfp class Landscaper extends Unit {
                         || (rbt_at_l.team == rc.getTeam().opponent()
                             && rbt_at_l.type.canMove()
                         )
-                        // || (locOfHQ != null
-                        //     && isIsolatedDueToMapEdge(l, locOfHQ)
-                        // )
+                        || (locOfHQ != null
+                            && isIsolatedDueToMapEdge(l, locOfHQ)
+                        )
                     )
                     && (rc.senseElevation(l) < min_diggable_elev
                         || rbt_at_l_is_friendly_building

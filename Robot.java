@@ -432,7 +432,7 @@ abstract public strictfp class Robot {
                         || (dx == -1 && dy == 2)
                         || (dx == -2 && dy == -1)
                         || (dx == 1 && dy == -2)
-                        // || isIsolatedDueToMapEdge(l, loc_of_hq)
+                        || isIsolatedDueToMapEdge(l, loc_of_hq)
                     )
                 )
             );
