@@ -166,7 +166,7 @@ public strictfp class DeliveryDrone extends Unit {
                     // do the rush
                     rc.move(rc.getLocation().directionTo(opp_hq_loc));
                 } else if(
-                    (rc.getRoundNum() / 50) % 10 >= 8 // it may take up to about 100 turns to collect the drones
+                    (rc.getRoundNum() / 50) % 10 >= 7 // it may take up to about 150 turns to collect the drones
                 ) {
                     // prepare for the rush
                     hybridStep(opp_hq_loc);
