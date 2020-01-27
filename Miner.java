@@ -51,7 +51,7 @@ public strictfp class Miner extends Unit {
         boolean should_mine = true;
         boolean im_the_first_miner = roundNumCreated <= 2;
         if(im_the_first_miner // we are the first miner built
-            || rc.getRoundNum() >= 1000 // or its terraforming time
+            || rc.getRoundNum() >= 500 // or its terraforming time
         ) {
             RobotType type_to_build = null;
             boolean should_build_refinery = false;
