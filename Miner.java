@@ -92,6 +92,7 @@ public strictfp class Miner extends Unit {
                     min(
                         (25 * (numBuildingsBuilt * numBuildingsBuilt))
                             + RobotType.DESIGN_SCHOOL.cost
+                            + (im_the_first_miner ? 0 : (rc.getRoundNum() / 2))
                         ,
                         RobotType.VAPORATOR.cost
                     )
