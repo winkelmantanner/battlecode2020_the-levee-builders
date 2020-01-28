@@ -282,10 +282,22 @@ abstract public strictfp class Unit extends Robot {
         return found;
     }
 
-    
-    MapLocation where_i_spotted_enemy_shooter = null; // must be updated by the drone
+    class EnemyShooterData {
+        public RobotInfo info;
+        public int round_num;
+        EnemyShooterData(RobotInfo rbt, final int round_num) {
+            this.info = rbt;
+            this.round_num = round_num;
+        }
+        float getCooldownTurnsForRound(final int roundNum) {
+            return max(0, this.info.cooldownTurns - ((float)(roundNum - this.round_num)));
+        }
+    }
+    ArrayList<EnemyShooterData> enemy_shooter_array = new ArrayList<EnemyShooterData>();
+    // MapLocation where_i_spotted_enemy_shooter = null; // must be updated by the drone
     int round_num_i_spotted_enemy_shooter = -12345;
     int round_num_searched_for_enemy_shooter = -12345;
+    final int NUM_ROUNDS_TO_REMEMBER_SHOOTERS = 50;
     void updateWhereISpottedEnemyShooter() throws GameActionException {
         // no matter how many times this function is called,
         // senseNearbyRobots() is only called once per round
@@ -295,19 +307,73 @@ abstract public strictfp class Unit extends Robot {
                 rc.getType().sensorRadiusSquared,
                 rc.getTeam().opponent()
             )) {
+
+                if(enemy_rbt.type.canShoot()) {
+                    boolean was_already_recorded = false;
+                    for(EnemyShooterData data : enemy_shooter_array) {
+                        if(enemy_rbt.ID == data.info.ID) {
+                            data.round_num = rc.getRoundNum();
+                            data.info = enemy_rbt;
+                            was_already_recorded = true;
+                            break;
+                        }
+                    }
+                    if(!was_already_recorded) {
+                        enemy_shooter_array.add(new EnemyShooterData(enemy_rbt, rc.getRoundNum()));
+                    }
+                }
+
                 if(enemy_rbt.type.canShoot()
                     && enemy_rbt.getCooldownTurns() < 2
                 ) {
-                    where_i_spotted_enemy_shooter = enemy_rbt.location;
+                    // where_i_spotted_enemy_shooter = enemy_rbt.location;
                     round_num_i_spotted_enemy_shooter = rc.getRoundNum();
                     break;
                 }
             }
-            if(rc.getRoundNum() - round_num_i_spotted_enemy_shooter > 50) {
-                // Handle the case of the shooter having been destroyed
-                where_i_spotted_enemy_shooter = null;
+            // if(rc.getRoundNum() - round_num_i_spotted_enemy_shooter > 50) {
+            //     // Handle the case of the shooter having been destroyed
+            //     where_i_spotted_enemy_shooter = null;
+            // }
+
+            // remove old entries from the array, but only at most 1 per round
+            int spot_to_remove = -1;
+            for(int k = 0; k < enemy_shooter_array.size(); k++) {
+                if(rc.getRoundNum() - enemy_shooter_array.get(k).round_num > NUM_ROUNDS_TO_REMEMBER_SHOOTERS) {
+                    spot_to_remove = k;
+                    break;
+                }
+            }
+            if(spot_to_remove >= 0) {
+                // System.out.println("REMOVING " + enemy_shooter_array.get(spot_to_remove).info.toString());
+                enemy_shooter_array.remove(spot_to_remove);
             }
         }
+    }
+    boolean isSafeFromEnemyShooters(Direction d) throws GameActionException {
+        updateWhereISpottedEnemyShooter();
+        MapLocation l = rc.adjacentLocation(d);
+        boolean is_safe = true;
+        for(EnemyShooterData data : enemy_shooter_array) {
+            if(l.isWithinDistanceSquared(
+                data.info.location,
+                GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED
+            )) {
+                if(l.distanceSquaredTo(data.info.location)
+                    <= rc.getLocation().distanceSquaredTo(data.info.location)
+                ) {
+                    is_safe = false;
+                    break;
+                }
+            }
+        }
+
+        // if(!is_safe) {
+        //     for(EnemyShooterData data : enemy_shooter_array) {
+        //         System.out.println(String.valueOf(data.info.ID) + " " + data.info.location.toString() + " " + String.valueOf(data.round_num));
+        //     }
+        // }
+        return is_safe;
     }
 
     class CanSafeMove {
@@ -377,22 +443,9 @@ abstract public strictfp class Unit extends Robot {
         boolean is_safe_from_enemy_robots = true;
         switch(rc.getType()) {
             case DELIVERY_DRONE:
-                updateWhereISpottedEnemyShooter();
-                if(where_i_spotted_enemy_shooter != null
-                    && loc.isWithinDistanceSquared(
-                        where_i_spotted_enemy_shooter,
-                        GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED
-                    )
-                    && !rc.getLocation().isWithinDistanceSquared(
-                        where_i_spotted_enemy_shooter,
-                        GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED
-                    )
-                ) {
-                    is_safe_from_enemy_robots = false;
-                }
                 is_safe = isCardinal(dir)
-                    && is_safe_from_enemy_robots
-                    && rc.canMove(dir);
+                    && rc.canMove(dir)
+                    && isSafeFromEnemyShooters(dir);
                 break;
             default:
                 float water_level_30_ago = (can_move_to_below_water_level
