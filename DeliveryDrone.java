@@ -18,8 +18,6 @@ public strictfp class DeliveryDrone extends Unit {
         super(rbt_controller);
         rc = rbt_controller;
 
-        // this DOESN'T WORK because the rng is re-instantiated with the default seed for each bot
-        // will_be_attack_drone is almost always true
         will_be_attack_drone = (0 == ((rc.getRoundNum() % 7) % 2));
     }
 
