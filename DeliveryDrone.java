@@ -17,7 +17,10 @@ public strictfp class DeliveryDrone extends Unit {
     DeliveryDrone(RobotController rbt_controller) {
         super(rbt_controller);
         rc = rbt_controller;
-        will_be_attack_drone = Math.random() < 0.5;
+
+        // this DOESN'T WORK because the rng is re-instantiated with the default seed for each bot
+        // will_be_attack_drone is almost always true
+        will_be_attack_drone = (Math.random() < 0.5);
     }
 
     boolean will_be_attack_drone = false;
