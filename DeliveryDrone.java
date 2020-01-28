@@ -18,6 +18,8 @@ public strictfp class DeliveryDrone extends Unit {
         super(rbt_controller);
         rc = rbt_controller;
 
+        can_move_diagonally = false;
+
         will_be_attack_drone = (0 == ((rc.getRoundNum() % 7) % 2));
     }
 
@@ -183,7 +185,9 @@ public strictfp class DeliveryDrone extends Unit {
                     ) {
                         // move toward enemy units if not carrying anythin
                         if(Math.random() < 0.95) {
+                            can_move_diagonally = true;
                             hybridStep(rbt.location);
+                            can_move_diagonally = false;
                         }
                     }
                 }
@@ -209,19 +213,18 @@ public strictfp class DeliveryDrone extends Unit {
                 }
             }
 
-            // Generally stay near the HQ
-            if(locOfHQ == null
-                || (carried_unit_info != null
-                    && carried_unit_info.team != rc.getTeam()
-                )
-                || Math.random() < 0.25
-                || (is_attack_drone
-                    && rc.getRoundNum() > 300
-                )
+            can_move_diagonally = Math.random() < 0.1;
+
+            GoSomewhereOptions options = new GoSomewhereOptions();
+            options.setMaxDistFromHq(is_attack_drone ? 1234 : 3);
+            
+            if(!is_attack_drone
+                && locOfHQ != null
+                && max_difference(rc.getLocation(), locOfHQ) >= 4
             ) {
-                tryGoSomewhere();
+                goToHQ();
             } else {
-                hybridStep(locOfHQ);
+                tryGoSomewhere(options);
             }
         }
     }
