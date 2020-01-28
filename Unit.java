@@ -11,7 +11,7 @@ import java.util.*;
 abstract public strictfp class Unit extends Robot {
 
     Unit(RobotController rc) {
-      super(rc);
+        super(rc);
     }
 
 
@@ -19,7 +19,7 @@ abstract public strictfp class Unit extends Robot {
     RobotInfo carried_unit_info = null;
 
 
-    
+    boolean can_move_diagonally = true;
 
 
     Direction current_dir = null;
@@ -29,18 +29,33 @@ abstract public strictfp class Unit extends Robot {
     int bug_dist = -1; // -1 iff bug_dir == null
     MapLocation bug_loc = null; // used to tell if we moved since bugPathingStep was last called
 
-
-    boolean tryGoSomewhere() throws GameActionException {
-        return tryGoSomewhere(false);
+    class GoSomewhereOptions {
+        public int max_dist_from_hq = 1234;
+        void setMaxDistFromHq(final int max_dist) {
+            this.max_dist_from_hq = max_dist;
+        }
     }
-    boolean tryGoSomewhere(final boolean can_move_to_below_water_level) throws GameActionException {
+    boolean tryGoSomewhere() throws GameActionException {
+        return tryGoSomewhere(new GoSomewhereOptions());
+    }
+    boolean isCloseEnoughToHq(final Direction dir, final int max_dist) {
+        if(locOfHQ == null) {
+            return true;
+        }
+        int resulting_dist = max_difference(locOfHQ, rc.adjacentLocation(dir));
+        return resulting_dist <= max_dist
+            || resulting_dist <= max_difference(rc.getLocation(), locOfHQ);
+    }
+    boolean tryGoSomewhere(final GoSomewhereOptions options) throws GameActionException {
         boolean did_move = false;
         if(rc.isReady()) {
             if(Math.random() < 0.2) {
                 current_dir = null;
             }
             if(current_dir != null) {
-                if(safeTryMove(current_dir)) {
+                if(isCloseEnoughToHq(current_dir, options.max_dist_from_hq)
+                    && safeTryMove(current_dir)
+                ) {
                     did_move = true;
                 } else {
                     current_dir = null;
@@ -50,7 +65,10 @@ abstract public strictfp class Unit extends Robot {
                 int infLoopPreventer = 10;
                 do {
                     current_dir = randomDirection(rc.getType().canBeShot());
-                    if(safeTryMove(current_dir)) {
+                    if(
+                        isCloseEnoughToHq(current_dir, options.max_dist_from_hq)
+                        && safeTryMove(current_dir)
+                    ) {
                         did_move = true;
                     } else {
                         current_dir = null;
@@ -440,43 +458,49 @@ abstract public strictfp class Unit extends Robot {
         if(!rc.onTheMap(loc)) {
             is_safe = false;
         }
-        boolean is_safe_from_enemy_robots = true;
-        switch(rc.getType()) {
-            case DELIVERY_DRONE:
-                is_safe = isCardinal(dir)
-                    && rc.canMove(dir)
-                    && isSafeFromEnemyShooters(dir);
-                break;
-            default:
-                float water_level_30_ago = (can_move_to_below_water_level
-                    ? -1234
-                    : GameConstants.getWaterLevel(rc.getRoundNum() - 30)
-                );
-                float water_level_in_20 = (can_move_to_below_water_level
-                    ? -1234
-                    : GameConstants.getWaterLevel(rc.getRoundNum() + 20)
-                );
-                for(RobotInfo rbt : getNearbyOpponentUnits()) {
-                    if(rbt.type == RobotType.DELIVERY_DRONE
-                        && rbt.cooldownTurns < 4
-                        && max_difference(loc, rbt.location) <= 3
-                        && max_difference(rc.getLocation(), rbt.location) > max_difference(loc, rbt.location)
-                    ) {
-                        is_safe_from_enemy_robots = false;
+        if(!can_move_diagonally
+            && !isCardinal(dir)
+        ) {
+            is_safe = false;
+        }
+        if(is_safe) {
+            boolean is_safe_from_enemy_robots = true;
+            switch(rc.getType()) {
+                case DELIVERY_DRONE:
+                    is_safe = rc.canMove(dir)
+                        && isSafeFromEnemyShooters(dir);
+                    break;
+                default:
+                    float water_level_30_ago = (can_move_to_below_water_level
+                        ? -1234
+                        : GameConstants.getWaterLevel(rc.getRoundNum() - 30)
+                    );
+                    float water_level_in_20 = (can_move_to_below_water_level
+                        ? -1234
+                        : GameConstants.getWaterLevel(rc.getRoundNum() + 20)
+                    );
+                    for(RobotInfo rbt : getNearbyOpponentUnits()) {
+                        if(rbt.type == RobotType.DELIVERY_DRONE
+                            && rbt.cooldownTurns < 4
+                            && max_difference(loc, rbt.location) <= 3
+                            && max_difference(rc.getLocation(), rbt.location) > max_difference(loc, rbt.location)
+                        ) {
+                            is_safe_from_enemy_robots = false;
+                        }
                     }
-                }
-                is_safe = is_safe_from_enemy_robots
-                    && rc.canMove(dir)
-                    && (!rc.canSenseLocation(loc) || !rc.senseFlooding(loc));
-                if(is_safe) {
-                    boolean flood_danger = rc.canSenseLocation(loc)
-                        && rc.canSenseLocation(rc.getLocation())
-                        && water_level_in_20 > rc.senseElevation(loc)
-                        && water_level_in_20 < rc.senseElevation(rc.getLocation())
-                        && !(water_level_30_ago > rc.senseElevation(loc));
-                    is_safe = !flood_danger;
-                }
-                break;
+                    is_safe = is_safe_from_enemy_robots
+                        && rc.canMove(dir)
+                        && (!rc.canSenseLocation(loc) || !rc.senseFlooding(loc));
+                    if(is_safe) {
+                        boolean flood_danger = rc.canSenseLocation(loc)
+                            && rc.canSenseLocation(rc.getLocation())
+                            && water_level_in_20 > rc.senseElevation(loc)
+                            && water_level_in_20 < rc.senseElevation(rc.getLocation())
+                            && !(water_level_30_ago > rc.senseElevation(loc));
+                        is_safe = !flood_danger;
+                    }
+                    break;
+            }
         }
         csm.set(rc.getRoundNum(), is_safe);
         return is_safe;
