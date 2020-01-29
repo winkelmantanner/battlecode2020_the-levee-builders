@@ -49,6 +49,9 @@ public strictfp class DeliveryDrone extends Unit {
                     if(rbt != null
                         && rbt.team != rc.getTeam()
                         && rc.canPickUpUnit(rbt.ID)
+                        && (!rbt.type.equals(RobotType.COW)
+                            || is_attack_drone
+                        )
                         && rc.canSenseLocation(rbt.location)
                         && !is_valid_enemy_drop_loc(rbt.location)
                     ) {
