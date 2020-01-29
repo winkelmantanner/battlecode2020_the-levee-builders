@@ -26,6 +26,8 @@ public strictfp class DeliveryDrone extends Unit {
     boolean will_be_attack_drone = false;
     boolean is_attack_drone = false;
 
+    MapLocation random_spot_im_going_to = null;
+
     int turn_i_was_1_from_hq = -12345;
 
     boolean has_posted = false;
@@ -259,6 +261,20 @@ public strictfp class DeliveryDrone extends Unit {
                     options.setMaxDistFromHq(2);
                 }
             }
+
+            if(is_attack_drone) {
+                if(random_spot_im_going_to == null
+                    || rc.getRoundNum() % 100 == 0
+                    || rc.getLocation().distanceSquaredTo(random_spot_im_going_to) <= 6
+                ) {
+                    random_spot_im_going_to = new MapLocation(
+                        (rc.getID() + (rc.getRoundNum()*3)) % rc.getMapWidth(),
+                        (rc.getID() + (rc.getRoundNum()*7)) % rc.getMapHeight()
+                    );
+                }
+                hybridStep(random_spot_im_going_to);
+            }
+
             if(!is_attack_drone
                 && locOfHQ != null
                 && max_difference(rc.getLocation(), locOfHQ) >= 4
