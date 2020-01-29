@@ -988,6 +988,15 @@ abstract public strictfp class Unit extends Robot {
                 )
             );
     }
+    boolean is_valid_cow_drop_loc(MapLocation l) throws GameActionException {
+        return rc.canSenseLocation(l)
+            && (
+                rc.senseFlooding(l)
+                || (locOfHQ != null
+                    && l.distanceSquaredTo(locOfHQ) >= 225 // 225 == 15*15
+                )
+            );
+    }
 
 
 

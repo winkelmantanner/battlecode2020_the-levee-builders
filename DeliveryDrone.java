@@ -30,7 +30,8 @@ public strictfp class DeliveryDrone extends Unit {
 
     boolean has_posted = false;
 
-    
+    MapLocation where_i_found_valid_enemy_drop_loc = null;
+    MapLocation where_i_found_valid_cow_drop_loc = null;
 
     public void runTurn() throws GameActionException {
         updateLocOfHQ();
@@ -47,6 +48,24 @@ public strictfp class DeliveryDrone extends Unit {
                     && rc.canSenseLocation(ml)
                 ) {
                     RobotInfo rbt = rc.senseRobotAtLocation(ml);
+
+                    if(rbt == null) {
+                        if(is_valid_enemy_drop_loc(ml)) {
+                            where_i_found_valid_enemy_drop_loc = ml;
+                        } else if(where_i_found_valid_enemy_drop_loc != null
+                            && ml.equals(where_i_found_valid_enemy_drop_loc)
+                        ) {
+                            where_i_found_valid_enemy_drop_loc = null;
+                        }
+                        if(is_valid_cow_drop_loc(ml)) {
+                            where_i_found_valid_cow_drop_loc = ml;
+                        } else if(where_i_found_valid_cow_drop_loc != null
+                            && ml.equals(where_i_found_valid_cow_drop_loc)
+                        ) {
+                            where_i_found_valid_cow_drop_loc = null;
+                        }
+                    }
+
                     if(rbt != null
                         && rbt.team != rc.getTeam()
                         && rc.canPickUpUnit(rbt.ID)
@@ -55,6 +74,9 @@ public strictfp class DeliveryDrone extends Unit {
                         )
                         && rc.canSenseLocation(rbt.location)
                         && !is_valid_enemy_drop_loc(rbt.location)
+                        && (!rbt.type.equals(RobotType.COW)
+                            || !is_valid_cow_drop_loc(ml)
+                        )
                     ) {
                         // pick up any enemy unit
                         System.out.println("Picked up enemy unit");
@@ -84,6 +106,7 @@ public strictfp class DeliveryDrone extends Unit {
                         && rc.canPickUpUnit(rbt.ID)
                     ) {
                         // pick up miners off the levee
+                        // and pick up landscapers hoping to put them on the levee
                         rc.pickUpUnit(rbt.ID);
                         carried_unit_info = rbt;
                         break;
@@ -153,12 +176,15 @@ public strictfp class DeliveryDrone extends Unit {
                 && carried_unit_info.team != rc.getTeam()
                 && rc.isCurrentlyHoldingUnit()
             ) {
-                // move toward water if carrying enemy unit
-                tryMoveToward(
-                    RobotType.COW == carried_unit_info.type
-                    ? X.WATER
-                    : X.WATER_OR_PIT
-                );
+                if(RobotType.COW == carried_unit_info.type) {
+                    if(where_i_found_valid_cow_drop_loc != null) {
+                        hybridStep(where_i_found_valid_cow_drop_loc);
+                    }
+                } else {
+                    if(where_i_found_valid_enemy_drop_loc != null) {
+                        hybridStep(where_i_found_valid_enemy_drop_loc);
+                    }
+                }
             }
 
             // rush
