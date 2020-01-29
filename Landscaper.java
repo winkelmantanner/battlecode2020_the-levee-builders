@@ -399,14 +399,25 @@ public strictfp class Landscaper extends Unit {
                             fuzzy_step(hq_adj_data.min_adj_elev_loc);
                         }
                     } else if(max_difference(locOfHQ, rc.getLocation()) == 2) {
-                        if(rc.canSenseLocation(rc.getLocation())
-                            && rc.senseElevation(rc.getLocation()) <= min(100, MAX_ELEVATION_STEP + GameConstants.getWaterLevel(rc.getRoundNum() + 100))
-                            && rc.senseElevation(rc.getLocation()) <= hq_adj_data.min_adj_elevation
-                        ) {
-                            // we know we have dirt since can_deposit_adj_to_hq
-                            deposit(Direction.CENTER);
-                        } else {
-                            deposit(dir_we_can_deposit_adj_to_hq);
+                        for(Direction dir : directions) {
+                            MapLocation l = rc.adjacentLocation(dir);
+                            if(rc.canMove(dir)
+                                && l.distanceSquaredTo(locOfHQ) < rc.getLocation().distanceSquaredTo(locOfHQ)
+                                && canSafeMove(dir)
+                            ) {
+                                rc.move(dir);
+                            }
+                        }
+                        if(rc.isReady()) {
+                            if(rc.canSenseLocation(rc.getLocation())
+                                && rc.senseElevation(rc.getLocation()) <= min(100, MAX_ELEVATION_STEP + GameConstants.getWaterLevel(rc.getRoundNum() + 100))
+                                && rc.senseElevation(rc.getLocation()) <= hq_adj_data.min_adj_elevation
+                            ) {
+                                // we know we have dirt since can_deposit_adj_to_hq
+                                deposit(Direction.CENTER);
+                            } else {
+                                deposit(dir_we_can_deposit_adj_to_hq);
+                            }
                         }
                     }
                 }
