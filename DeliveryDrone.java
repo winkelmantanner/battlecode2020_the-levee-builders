@@ -34,6 +34,7 @@ public strictfp class DeliveryDrone extends Unit {
 
     public void runTurn() throws GameActionException {
         updateLocOfHQ();
+        can_move_diagonally = ((rc.getRoundNum() % 17) == 0);
         if(locOfHQ != null
             && rc.getLocation().isAdjacentTo(locOfHQ)
         ) {
@@ -217,7 +218,6 @@ public strictfp class DeliveryDrone extends Unit {
                 }
             }
 
-            can_move_diagonally = ((rc.getRoundNum() % 10) == 0);
 
             GoSomewhereOptions options = new GoSomewhereOptions();
             if(!is_attack_drone

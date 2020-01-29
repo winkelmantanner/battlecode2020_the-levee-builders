@@ -64,7 +64,7 @@ abstract public strictfp class Unit extends Robot {
             if(current_dir == null) {
                 int infLoopPreventer = 10;
                 do {
-                    current_dir = randomDirection(rc.getType().canBeShot());
+                    current_dir = randomDirection(!can_move_diagonally);
                     if(
                         isCloseEnoughToHq(current_dir, options.max_dist_from_hq)
                         && safeTryMove(current_dir)
