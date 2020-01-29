@@ -56,6 +56,7 @@ public strictfp class DeliveryDrone extends Unit {
                         && !is_valid_enemy_drop_loc(rbt.location)
                     ) {
                         // pick up any enemy unit
+                        System.out.println("Picked up enemy unit");
                         rc.pickUpUnit(rbt.ID);
                         carried_unit_info = rbt;
                         break;
