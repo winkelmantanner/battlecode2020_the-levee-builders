@@ -213,7 +213,7 @@ public strictfp class DeliveryDrone extends Unit {
                 }
             }
 
-            can_move_diagonally = Math.random() < 0.1;
+            can_move_diagonally = ((rc.getRoundNum() % 10) == 0);
 
             GoSomewhereOptions options = new GoSomewhereOptions();
             options.setMaxDistFromHq(is_attack_drone ? 1234 : 3);
