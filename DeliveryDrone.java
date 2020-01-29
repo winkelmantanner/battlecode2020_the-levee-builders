@@ -224,6 +224,13 @@ public strictfp class DeliveryDrone extends Unit {
                     || carried_unit_info.team.equals(rc.getTeam())
             )) {
                 options.setMaxDistFromHq(3);
+                if(locOfHQ != null
+                    && 2 == max_difference(rc.getLocation(), locOfHQ)
+                    && rc.canSenseLocation(rc.getLocation())
+                    && rc.senseFlooding(rc.getLocation())
+                ) {
+                    options.setMaxDistFromHq(2);
+                }
             }
             if(!is_attack_drone
                 && locOfHQ != null
