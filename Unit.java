@@ -931,9 +931,10 @@ abstract public strictfp class Unit extends Robot {
                 ) {
                     if(friendly_shooter_info != null
                         && rc.getLocation().distanceSquaredTo(friendly_shooter_info.location) >= 6
+                        && max_difference(rbt.location, rc.getLocation()) >= 2
                     ) {
                         has_moved = hybridStep(friendly_shooter_info.location);
-                    } else if(friendly_shooter_info == null) {
+                    } else {
                         need_to_run_from_enemy_drones = true;
                     }
                     break;
