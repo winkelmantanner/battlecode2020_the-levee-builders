@@ -855,7 +855,7 @@ abstract public strictfp class Unit extends Robot {
             ) {
                 nearby_enemy_drone_locs[nearby_enemy_drones_length] = rbt.location;
                 nearby_enemy_drones_length++;
-                System.out.println("Enemy drone " + rbt.location.toString());
+                // System.out.println("Enemy drone " + rbt.location.toString());
                 if(nearby_enemy_drones_length >= MAX_NUM_NEARBY_ENEMY_DRONES) {
                     break;
                 }
@@ -893,25 +893,87 @@ abstract public strictfp class Unit extends Robot {
     }
 
     // int maxbc = 0;
-    boolean tryGoToHqIfNearbyEnemyDrones() throws GameActionException {
-        // int b = Clock.getBytecodeNum();
-        for(RobotInfo rbt : rc.senseNearbyRobots(
-            rc.getType().sensorRadiusSquared,
-            rc.getTeam().opponent()
-        )) {
-            if(rbt.type.equals(RobotType.DELIVERY_DRONE)
-                && max_difference(rbt.location, rc.getLocation()) <= 3
-            ) {
-                return goToHQ();
+    // int max_bc_taken = 0;
+    RobotInfo friendly_shooter_info = null;
+    int round_num_observed_friendly_shooter = -1;
+    boolean runToNetGunIfDrones() throws GameActionException {
+        // int bc = Clock.getBytecodeNum();
+        boolean has_moved = false;
+        // int bca = 0;
+        // int bcb = 0;
+        // int bcc = 0;
+        if(rc.isReady()) {
+            int min_dist_from_shooter = 1234;
+            // bca = Clock.getBytecodeNum();
+            for(RobotInfo rbt : rc.senseNearbyRobots(
+                rc.getType().sensorRadiusSquared,
+                rc.getTeam()
+            )) {
+                if(rbt.type.canShoot()
+                    && rc.getLocation().distanceSquaredTo(rbt.location) < min_dist_from_shooter
+                ) {
+                    friendly_shooter_info = rbt;
+                    min_dist_from_shooter = rc.getLocation().distanceSquaredTo(rbt.location);
+                    round_num_observed_friendly_shooter = rc.getRoundNum();
+                }
+            }
+            // bcb = Clock.getBytecodeNum();
+            if(rc.getRoundNum() - round_num_observed_friendly_shooter > 30) {
+                friendly_shooter_info = null;
+            }
+            boolean need_to_run_from_enemy_drones = false;
+            for(RobotInfo rbt : rc.senseNearbyRobots(
+                rc.getType().sensorRadiusSquared,
+                rc.getTeam().opponent()
+            )) {
+                if(rbt.type.equals(RobotType.DELIVERY_DRONE)
+                    && max_difference(rbt.location, rc.getLocation()) <= 3
+                ) {
+                    if(friendly_shooter_info != null
+                        && rc.getLocation().distanceSquaredTo(friendly_shooter_info.location) >= 6
+                    ) {
+                        has_moved = hybridStep(friendly_shooter_info.location);
+                    } else if(friendly_shooter_info == null) {
+                        need_to_run_from_enemy_drones = true;
+                    }
+                    break;
+                }
+            }
+            // bcc = Clock.getBytecodeNum();
+            if(need_to_run_from_enemy_drones) {
+                has_moved = (has_moved || tryRunFromAnyNearbyDrones());
             }
         }
-        // int t = Clock.getBytecodeNum() - b;
-        // if(t > maxbc) {
-        //     maxbc = t;
-        //     System.out.println("maxbc:" + String.valueOf(maxbc));
+        // int bc_taken = Clock.getBytecodeNum() - bc;
+        // if(bc_taken > max_bc_taken) {
+        //     max_bc_taken = bc_taken;
+        //     System.out.println("max_bc_taken:" + String.valueOf(max_bc_taken)
+        //         + " bca-bc:" + String.valueOf(bca - bc)
+        //         + " bcb-bc:" + String.valueOf(bcb - bc)
+        //         + " bcc-bc:" + String.valueOf(bcc - bc)
+        //     );
         // }
-        return false;
+        return has_moved;
     }
+    // boolean tryGoToHqIfNearbyEnemyDrones() throws GameActionException {
+    //     // int b = Clock.getBytecodeNum();
+    //     for(RobotInfo rbt : rc.senseNearbyRobots(
+    //         rc.getType().sensorRadiusSquared,
+    //         rc.getTeam().opponent()
+    //     )) {
+    //         if(rbt.type.equals(RobotType.DELIVERY_DRONE)
+    //             && max_difference(rbt.location, rc.getLocation()) <= 3
+    //         ) {
+    //             return goToHQ();
+    //         }
+    //     }
+    //     // int t = Clock.getBytecodeNum() - b;
+    //     // if(t > maxbc) {
+    //     //     maxbc = t;
+    //     //     System.out.println("maxbc:" + String.valueOf(maxbc));
+    //     // }
+    //     return false;
+    // }
 
 
 
