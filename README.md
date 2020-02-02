@@ -12,6 +12,6 @@ Here are some things about this bot:
 
 - The miners like to stand on top of soup while they mine it.  This makes it easier for other miners to see that they can path to where they can reach the soup.
 
-- The biggest improvement I made during the entire coding of this bot was upping the number of miners to build from 3 to 7.  With only 3 miners, the bot only acheived exponential vaporator growth on about 10% of maps.  With 7 miners, the bot acheives exponential vaporator growth on about 80% of maps (unless it is interfered with by the opponent bot).
+- The biggest improvement I made during the entire coding of this bot was [upping the number of miners to build from 3 to 7](https://github.com/winkelmantanner/battlecode2020_the-levee-builders/commit/121e1f3b5a7b334dda776576f4783eace99d7123).  With only 3 miners, the bot only acheived exponential vaporator growth on about 10% of maps.  With 7 miners, the bot acheives exponential vaporator growth on about 80% of maps (unless it is interfered with by the opponent bot).
 
 
