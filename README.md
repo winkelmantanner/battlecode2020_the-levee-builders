@@ -1,6 +1,6 @@
 I spent a month coding this bot that plays the Battlecode 2020 game.  Battlecode is an AI programming competition put on by MIT.  I think Missouri S&T's MegaMiner AI programming competition was inspired by Battlecode.
 
-This bot was a finalist (in the top 16) and it came out in the 5th-6th level in the final tournament.  Those are global ranks, and it means this bot is one of the top bots in the world.  This bot was known as the-levee-builders in the tournaments.  You can watch the tournaments on [Battlecode's twitch](https://www.twitch.tv/mitbattlecode).
+This bot was a finalist (in the top 16) and it came out in the 5th-6th level in the final tournament, winning US$1,500.  This bot was known as the-levee-builders in the tournaments.  You can watch the final tournament here: https://www.youtube.com/watch?v=G4YwPfY2eBs.
 
 Here are some things about this bot:
 
